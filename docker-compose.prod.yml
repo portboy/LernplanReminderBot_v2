@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  lernplan-bot:
+    image: ghcr.io/portboy/lernplan-reminder-bot:latest
+    container_name: lernplan-reminder-bot
+    restart: unless-stopped
+    
+    # Umgebungsvariablen aus Datei laden
+    # Pfad anpassen für Ihr System
+    env_file: .env
+    
+    # Daten persistent speichern
+    volumes:
+      - ./data:/app/data
+    
+    # Keine Ports nötig - Bot nutzt ausgehende Verbindungen zu Telegram
+    
+    # Optional: Logging-Konfiguration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Optional: Health Check
+    # healthcheck:
+    #   test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
+    
+    # Optional: Ressourcenlimits
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 256M
+    #     reservations:
+    #       cpus: '0.1'
+    #       memory: 64M
+    
+    # Optional: Watchtower Auto-Update
+    # labels:
+    #   - "com.centurylinklabs.watchtower.enable=true"

@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  lernplan-bot:
+    build: .
+    container_name: lernplan-reminder-bot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    # Optional: Logs nach außen
+    # ports: []  # Telegram nutzt ausgehend HTTPS, kein Port Mapping nötig
