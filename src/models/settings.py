@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 WEEKDAYS = ["montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag"]
 ALLOWED_SUBJECTS = ["Mathe", "Englisch"]  # aktuell begrenzt laut Spezifikation
@@ -27,22 +28,53 @@ class UserSettings:
     chat_id: int
     reminder_times: List[str] = field(default_factory=list)  # HH:MM (24h)
     week_plan: Dict[str, DayPlan] = field(default_factory=dict)  # weekday(lower)->DayPlan
+    jokers_available: int = 1
+    last_joker_reset_iso: str = ""
+    daily_dynamic_plan: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
             "chat_id": self.chat_id,
             "reminder_times": self.reminder_times,
             "week_plan": {k: v.to_dict() for k, v in self.week_plan.items()},
+            "jokers_available": self.jokers_available,
+            "last_joker_reset_iso": self.last_joker_reset_iso,
+            "daily_dynamic_plan": [dict(entry) for entry in self.daily_dynamic_plan],
         }
 
     @staticmethod
     def from_dict(data: dict) -> "UserSettings":
         week_plan = {k: DayPlan.from_dict(v) for k, v in data.get("week_plan", {}).items()}
+        raw_daily_plan = data.get("daily_dynamic_plan", [])
+        if not isinstance(raw_daily_plan, list):
+            raw_daily_plan = []
+        daily_dynamic_plan: List[Dict[str, Any]] = [dict(item) for item in raw_daily_plan if isinstance(item, dict)]
+        last_reset = data.get("last_joker_reset_iso")
+        last_reset_str = last_reset if isinstance(last_reset, str) else ""
         return UserSettings(
             chat_id=int(data["chat_id"]),
             reminder_times=list(data.get("reminder_times", [])),
             week_plan=week_plan,
+            jokers_available=int(data.get("jokers_available", 1)),
+            last_joker_reset_iso=last_reset_str,
+            daily_dynamic_plan=daily_dynamic_plan,
         )
+
+    def ensure_recent_joker_reset(self, reference_date: date | None = None) -> bool:
+        reference_date = reference_date or date.today()
+        last_monday = reference_date - timedelta(days=reference_date.weekday())
+        last_monday_iso = last_monday.isoformat()
+        last_reset_date: date | None = None
+        if self.last_joker_reset_iso:
+            try:
+                last_reset_date = date.fromisoformat(self.last_joker_reset_iso)
+            except ValueError:
+                last_reset_date = None
+        if last_reset_date is None or last_reset_date < last_monday:
+            self.jokers_available = 1
+            self.last_joker_reset_iso = last_monday_iso
+            return True
+        return False
 
 
 class SettingsRepository:
@@ -57,10 +89,15 @@ class SettingsRepository:
         f = self._file_for(chat_id)
         if not f.exists():
             # default week plan empty; subject fallback handled elsewhere
-            return UserSettings(chat_id=chat_id)
+            settings = UserSettings(chat_id=chat_id)
+            settings.ensure_recent_joker_reset()
+            return settings
         with f.open("r", encoding="utf-8") as fh:
             data = json.load(fh)
-        return UserSettings.from_dict(data)
+        settings = UserSettings.from_dict(data)
+        if settings.ensure_recent_joker_reset():
+            self.save(settings)
+        return settings
 
     def save(self, settings: UserSettings) -> None:
         f = self._file_for(settings.chat_id)
