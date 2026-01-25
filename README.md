@@ -5,6 +5,7 @@ Telegram Bot zur täglichen Erinnerung an einen Lernplan (z.B. Mathe / Englisch)
 ## 📚 Dokumentation
 
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** - Ausführliche Deployment-Anleitung für Docker, Unraid, etc.
+- **[GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md)** - Setup für GitHub Actions GHCR Permissions
 - **[.env.example](.env.example)** - Beispiel-Konfiguration
 
 ## Features

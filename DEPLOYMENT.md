@@ -1,5 +1,9 @@
 # Deployment Guide
 
+## 📋 Wichtige Hinweise
+
+- **[GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md)** - Falls du Build-Fehler mit GitHub Actions hast (Permission denied beim Push zu GHCR)
+
 ## 🐳 Docker Deployment Optionen
 
 ### Option 1: Lokale Entwicklung (mit Build)
