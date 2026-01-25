@@ -74,7 +74,7 @@ docker compose -f docker-compose.prod.yml logs -f
    version: "3.9"
    services:
      lernplan-bot:
-       image: ghcr.io/portboy/lernplan-reminder-bot:latest
+       image: ghcr.io/portboy/lernplanreminderbot-v2:latest
        container_name: lernplan-reminder-bot
        restart: unless-stopped
        env_file: /mnt/user/appdata/LernplanReminderBot/.env
@@ -102,7 +102,7 @@ docker compose -f docker-compose.prod.yml logs -f
 
 ```bash
 # Image pullen
-docker pull ghcr.io/portboy/lernplan-reminder-bot:latest
+docker pull ghcr.io/portboy/lernplanreminderbot-v2:latest
 
 # Container starten
 docker run -d \
@@ -110,7 +110,7 @@ docker run -d \
   --restart unless-stopped \
   --env-file .env \
   -v $(pwd)/data:/app/data \
-  ghcr.io/portboy/lernplan-reminder-bot:latest
+  ghcr.io/portboy/lernplanreminderbot-v2:latest
 ```
 
 ---
@@ -277,7 +277,7 @@ Der Bot baut automatisch neue Images bei jedem Push auf `main`:
 3. **Multi-Arch:** Unterstützt AMD64 und ARM64
 
 **Image Tags:**
-- `ghcr.io/portboy/lernplan-reminder-bot:latest` - Neueste Version
-- `ghcr.io/portboy/lernplan-reminder-bot:main` - Main Branch
-- `ghcr.io/portboy/lernplan-reminder-bot:v0.1.0` - Spezifische Version
-- `ghcr.io/portboy/lernplan-reminder-bot:sha-abc1234` - Commit-basiert
+- `ghcr.io/portboy/lernplanreminderbot-v2:latest` - Neueste Version
+- `ghcr.io/portboy/lernplanreminderbot-v2:main` - Main Branch
+- `ghcr.io/portboy/lernplanreminderbot-v2:v0.1.0` - Spezifische Version
+- `ghcr.io/portboy/lernplanreminderbot-v2:sha-abc1234` - Commit-basiert

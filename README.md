@@ -111,7 +111,7 @@ docker run -d \
   --restart unless-stopped \
   --env-file /mnt/user/appdata/LernplanReminderBot/.env \
   -v /mnt/user/appdata/LernplanReminderBot/data:/app/data \
-  ghcr.io/portboy/lernplan-reminder-bot:latest
+  ghcr.io/portboy/lernplanreminderbot-v2:latest
 ```
 
 ### 4. (Option B) Image lokal bauen & starten
@@ -147,7 +147,7 @@ docker compose -f /mnt/user/appdata/LernplanReminderBot/docker-compose.yml up -d
 
 ### 6. Unraid GUI (Template manuell)
 1. Docker Tab → "Add Container" → Advanced View.
-2. Repository: `ghcr.io/portboy/lernplan-reminder-bot:latest` (oder lokaler Build-Name).
+2. Repository: `ghcr.io/portboy/lernplanreminderbot-v2:latest` (oder lokaler Build-Name).
 3. Add Path: Host=`/mnt/user/appdata/LernplanReminderBot/data` → Container=`/app/data`.
 4. Add Variable: `TELEGRAM_TOKEN` (Pflicht).
 5. Add Variable: `PARENT_CHAT_ID`, `STUDENT_CHAT_ID`, optional `LOG_LEVEL`.
@@ -168,7 +168,7 @@ docker logs -f lernplan-reminder-bot
 ### 9. Update-Prozess
 Variante Registry (empfohlen):
 ```bash
-docker pull ghcr.io/portboy/lernplan-reminder-bot:latest
+docker pull ghcr.io/portboy/lernplanreminderbot-v2:latest
 docker stop lernplan-reminder-bot
 docker rm lernplan-reminder-bot
 docker run -d \
@@ -176,7 +176,7 @@ docker run -d \
   --restart unless-stopped \
   --env-file /mnt/user/appdata/LernplanReminderBot/.env \
   -v /mnt/user/appdata/LernplanReminderBot/data:/app/data \
-  ghcr.io/portboy/lernplan-reminder-bot:latest
+  ghcr.io/portboy/lernplanreminderbot-v2:latest
 ```
 
 Variante lokaler Build:

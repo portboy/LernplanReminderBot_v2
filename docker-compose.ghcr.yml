@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   lernplan-bot:
-    image: ghcr.io/portboy/lernplan-reminder-bot:latest
+    image: ghcr.io/portboy/lernplanreminderbot-v2:latest
     container_name: lernplan-reminder-bot
     restart: unless-stopped
     # Pfad zur .env Datei auf dem Unraid Host (vorher anlegen und Variablen setzen)
