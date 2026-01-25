@@ -5,9 +5,9 @@ services:
     container_name: lernplan-reminder-bot
     restart: unless-stopped
     # Pfad zur .env Datei auf dem Unraid Host (vorher anlegen und Variablen setzen)
-    env_file: /mnt/user/appdata/LernplanReminderBot/.env
+    env_file: /mnt/user/appdata/LernplanReminderBot_v2/.env
     volumes:
-      - /mnt/user/appdata/LernplanReminderBot/data:/app/data
+      - /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data
     # Keine Ports nötig – Bot stellt ausgehende Verbindungen zu Telegram her
     # Optional: Labels, falls du Watchtower oder ähnliches nutzt
     # labels:
@@ -20,14 +20,14 @@ services:
     #       memory: 256M
 
 # Hinweise:
-# 1. .env Beispiel (auf Unraid unter /mnt/user/appdata/LernplanReminderBot/.env):
+# 1. .env Beispiel (auf Unraid unter /mnt/user/appdata/LernplanReminderBot_v2/.env):
 #    TELEGRAM_TOKEN=123456:ABC....
 #    LOG_LEVEL=INFO
 #    DATA_DIR=data
 #    PARENT_CHAT_ID=123456789
 #    STUDENT_CHAT_ID=987654321
 # 2. Ordner anlegen:
-#    mkdir -p /mnt/user/appdata/LernplanReminderBot/data
+#    mkdir -p /mnt/user/appdata/LernplanReminderBot_v2/data
 # 3. Start:
 #    docker compose -f docker-compose.ghcr.yml up -d
 # 4. Update auf neuestes Image:

@@ -39,13 +39,13 @@ Geplant / Ideen:
 Variante A: Git ist installiert:
 ```bash
 cd /mnt/user/appdata/builds
-git clone https://github.com/portboy/LernplanReminderBot.git
-cd LernplanReminderBot
+git clone https://github.com/portboy/LernplanReminderBot_v2.git
+cd LernplanReminderBot_v2
 ```
 
 Variante B: ZIP Download:
 1. Auf GitHub: "Code" → "Download ZIP".
-2. ZIP entpacken nach `/mnt/user/appdata/builds/LernplanReminderBot`.
+2. ZIP entpacken nach `/mnt/user/appdata/builds/LernplanReminderBot_v2`.
 3. Wechsel in dieses Verzeichnis.
 
 Dann kannst du wie unten beschrieben bauen.
@@ -83,14 +83,14 @@ Der Bot läuft dauerhaft auf deinem Unraid Server. Einstellungen & Plan bleiben 
 
 ### Verzeichnisstruktur (Host)
 ```
-/mnt/user/appdata/LernplanReminderBot/
+/mnt/user/appdata/LernplanReminderBot_v2/
   ├─ data/              # JSON Dateien (automatisch erzeugt)
   └─ .env               # Environment Variablen
 ```
 
 ### 1. AppData Ordner anlegen
 ```bash
-mkdir -p /mnt/user/appdata/LernplanReminderBot/data
+mkdir -p /mnt/user/appdata/LernplanReminderBot_v2/data
 ```
 
 ```
@@ -109,46 +109,46 @@ Hinweise:
 docker run -d \
   --name lernplan-reminder-bot \
   --restart unless-stopped \
-  --env-file /mnt/user/appdata/LernplanReminderBot/.env \
-  -v /mnt/user/appdata/LernplanReminderBot/data:/app/data \
+  --env-file /mnt/user/appdata/LernplanReminderBot_v2/.env \
+  -v /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data \
   ghcr.io/portboy/lernplanreminderbot-v2:latest
 ```
 
 ### 4. (Option B) Image lokal bauen & starten
-Falls Repo lokal geklont unter z.B. `/mnt/user/appdata/builds/LernplanReminderBot`:
+Falls Repo lokal geklont unter z.B. `/mnt/user/appdata/builds/LernplanReminderBot_v2`:
 ```bash
-cd /mnt/user/appdata/builds/LernplanReminderBot
+cd /mnt/user/appdata/builds/LernplanReminderBot_v2
 docker build -t lernplan-reminder-bot:latest .
 docker run -d \
   --name lernplan-reminder-bot \
   --restart unless-stopped \
-  --env-file /mnt/user/appdata/LernplanReminderBot/.env \
-  -v /mnt/user/appdata/LernplanReminderBot/data:/app/data \
+  --env-file /mnt/user/appdata/LernplanReminderBot_v2/.env \
+  -v /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data \
   lernplan-reminder-bot:latest
 ```
 
 ### 5. docker compose (lokaler Build)
-Datei `/mnt/user/appdata/LernplanReminderBot/docker-compose.yml`:
+Datei `/mnt/user/appdata/LernplanReminderBot_v2/docker-compose.yml`:
 ```yaml
 version: "3.9"
 services:
   lernplan-bot:
     image: lernplan-reminder-bot:latest
-    build: /mnt/user/appdata/builds/LernplanReminderBot
+    build: /mnt/user/appdata/builds/LernplanReminderBot_v2
     restart: unless-stopped
-    env_file: /mnt/user/appdata/LernplanReminderBot/.env
+    env_file: /mnt/user/appdata/LernplanReminderBot_v2/.env
     volumes:
-      - /mnt/user/appdata/LernplanReminderBot/data:/app/data
+      - /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data
 ```
 Starten:
 ```bash
-docker compose -f /mnt/user/appdata/LernplanReminderBot/docker-compose.yml up -d --build
+docker compose -f /mnt/user/appdata/LernplanReminderBot_v2/docker-compose.yml up -d --build
 ```
 
 ### 6. Unraid GUI (Template manuell)
 1. Docker Tab → "Add Container" → Advanced View.
 2. Repository: `ghcr.io/portboy/lernplanreminderbot-v2:latest` (oder lokaler Build-Name).
-3. Add Path: Host=`/mnt/user/appdata/LernplanReminderBot/data` → Container=`/app/data`.
+3. Add Path: Host=`/mnt/user/appdata/LernplanReminderBot_v2/data` → Container=`/app/data`.
 4. Add Variable: `TELEGRAM_TOKEN` (Pflicht).
 5. Add Variable: `PARENT_CHAT_ID`, `STUDENT_CHAT_ID`, optional `LOG_LEVEL`.
 6. Keine Ports nötig.
@@ -174,8 +174,8 @@ docker rm lernplan-reminder-bot
 docker run -d \
   --name lernplan-reminder-bot \
   --restart unless-stopped \
-  --env-file /mnt/user/appdata/LernplanReminderBot/.env \
-  -v /mnt/user/appdata/LernplanReminderBot/data:/app/data \
+  --env-file /mnt/user/appdata/LernplanReminderBot_v2/.env \
+  -v /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data \
   ghcr.io/portboy/lernplanreminderbot-v2:latest
 ```
 
@@ -187,8 +187,8 @@ docker rm lernplan-reminder-bot
 docker build -t lernplan-reminder-bot:latest .
 docker run -d --name lernplan-reminder-bot \
   --restart unless-stopped \
-  --env-file /mnt/user/appdata/LernplanReminderBot/.env \
-  -v /mnt/user/appdata/LernplanReminderBot/data:/app/data \
+  --env-file /mnt/user/appdata/LernplanReminderBot_v2/.env \
+  -v /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data \
   lernplan-reminder-bot:latest
 ```
 Persistente Daten bleiben erhalten.

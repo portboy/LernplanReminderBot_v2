@@ -40,19 +40,19 @@ docker compose -f docker-compose.prod.yml logs -f
 ### Option 3: Unraid Server
 
 **Pfade auf Unraid:**
-- Config: `/mnt/user/appdata/LernplanReminderBot/.env`
-- Daten: `/mnt/user/appdata/LernplanReminderBot/data`
+- Config: `/mnt/user/appdata/LernplanReminderBot_v2/.env`
+- Daten: `/mnt/user/appdata/LernplanReminderBot_v2/data`
 
 **Setup-Schritte:**
 
 1. **Verzeichnisse erstellen:**
    ```bash
-   mkdir -p /mnt/user/appdata/LernplanReminderBot/data
+   mkdir -p /mnt/user/appdata/LernplanReminderBot_v2/data
    ```
 
 2. **.env Datei erstellen:**
    ```bash
-   nano /mnt/user/appdata/LernplanReminderBot/.env
+   nano /mnt/user/appdata/LernplanReminderBot_v2/.env
    ```
    
    Inhalt:
@@ -66,7 +66,7 @@ docker compose -f docker-compose.prod.yml logs -f
 
 3. **docker-compose.yml erstellen:**
    ```bash
-   nano /mnt/user/appdata/LernplanReminderBot/docker-compose.yml
+   nano /mnt/user/appdata/LernplanReminderBot_v2/docker-compose.yml
    ```
    
    Inhalt:
@@ -77,9 +77,9 @@ docker compose -f docker-compose.prod.yml logs -f
        image: ghcr.io/portboy/lernplanreminderbot-v2:latest
        container_name: lernplan-reminder-bot
        restart: unless-stopped
-       env_file: /mnt/user/appdata/LernplanReminderBot/.env
+       env_file: /mnt/user/appdata/LernplanReminderBot_v2/.env
        volumes:
-         - /mnt/user/appdata/LernplanReminderBot/data:/app/data
+         - /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data
        logging:
          driver: "json-file"
          options:
