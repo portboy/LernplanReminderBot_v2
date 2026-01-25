@@ -1,9 +1,10 @@
+---
 name: Build & Publish Docker Image
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
+    branches: [main]
+    tags: ['v*']
   workflow_dispatch: {}
 
 permissions:
@@ -26,9 +27,9 @@ jobs:
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata (tags, labels)
         id: meta
@@ -51,4 +52,5 @@ jobs:
 
       - name: Summary
         run: |
-          echo "Image Tags: ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "Image Tags: ${{ steps.meta.outputs.tags }}" >> \
+            $GITHUB_STEP_SUMMARY
