@@ -7,8 +7,6 @@ from pathlib import Path
 from random import choice
 from zoneinfo import ZoneInfo
 
-from core.logging_config import setup_logging
-from models.settings import DayPlan, SettingsRepository, UserSettings, WEEKDAYS
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Update
 from telegram.ext import (
     Application,
@@ -19,6 +17,9 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+
+from core.logging_config import setup_logging
+from models.settings import WEEKDAYS, DayPlan, SettingsRepository, UserSettings
 
 LOGGER = logging.getLogger(__name__)
 
@@ -92,6 +93,15 @@ DYNAMIC_PLANNING_TIMES = ["07:30", "09:00", "14:00", "16:30", "18:30", "20:30"]
 DURATION_CHOICES = [15, 30, 45, 60, 90, 120]
 MIN_MINUTES = 1
 MAX_MINUTES = 180
+DAY_OVERVIEW_ICONS = {
+    "montag": "🔵",
+    "dienstag": "🟢",
+    "mittwoch": "🟡",
+    "donnerstag": "🟠",
+    "freitag": "🟣",
+    "samstag": "🟤",
+    "sonntag": "⚪",
+}
 
 
 def get_shared_chat_ids() -> list[int]:
@@ -114,7 +124,9 @@ def get_shared_reminder_times() -> list[str]:
 
 
 def _clone_week_plan(plan: dict[str, DayPlan]) -> dict[str, DayPlan]:
-    return {day: DayPlan(subject=value.subject, minutes=value.minutes) for day, value in plan.items()}
+    return {
+        day: DayPlan(subject=value.subject, minutes=value.minutes) for day, value in plan.items()
+    }
 
 
 def get_shared_week_plan() -> dict[str, DayPlan]:
@@ -174,20 +186,45 @@ def _reminder_time_icon(time_str: str) -> str:
         return "⏰"
     if 5 <= hour < 9:
         return "🌅"
-    if 9 <= hour < 12:
-        return "☀️"
-    if 12 <= hour < 16:
+    if 9 <= hour < 16:
         return "☀️"
     if 16 <= hour < 19:
-        return "🌤️"
-    if 19 <= hour < 22:
         return "🌆"
+    if 19 <= hour < 22:
+        return "🌙"
+    if 22 <= hour < 24:
+        return "🌙"
     return "🌙"
 
 
 def build_reminder_message(settings: UserSettings) -> str:
     """Build a reminder message for the current day."""
-    today = WEEKDAYS[datetime.now(TIMEZONE).weekday()]
+    now_dt = datetime.now(TIMEZONE)
+    today = WEEKDAYS[now_dt.weekday()]
+    today_iso = now_dt.date().isoformat()
+    lines = [f"📌 Erinnerung für {today.capitalize()}"]
+
+    day_plan = settings.week_plan.get(today)
+    if day_plan:
+        duration = _format_duration(day_plan.minutes)
+        lines.append(f"📘 {day_plan.subject} ({duration})")
+    else:
+        lines.append("📘 Keine feste Aufgabe hinterlegt.")
+
+    dynamic_entries = [
+        entry for entry in settings.daily_dynamic_plan if entry.get("date_iso") == today_iso
+    ]
+    if dynamic_entries:
+        lines.append("🔁 Dynamische Einträge:")
+        for entry in dynamic_entries:
+            status = "✅" if entry.get("completed") else "⬜"
+            entry_time = entry.get("time_str", "--:--")
+            subject = entry.get("subject", "Unbekannt")
+            lines.append(f"{status} {entry_time} – {subject}")
+    else:
+        lines.append("🔁 Keine dynamischen Einträge für heute.")
+
+    return "\n".join(lines)
 
 
 def get_main_keyboard() -> ReplyKeyboardMarkup:
@@ -219,9 +256,7 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def plan_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message:
         return
-    await update.message.reply_text(
-        "Wochentage wählen:", reply_markup=build_weekday_menu()
-    )
+    await update.message.reply_text("Wochentage wählen:", reply_markup=build_weekday_menu())
 
 
 async def heute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -271,13 +306,7 @@ def build_dynamic_time_menu(subject: str) -> InlineKeyboardMarkup:
             row = []
     if row:
         rows.append(row)
-    rows.append(
-        [
-            InlineKeyboardButton(
-                f"⬅️ {subject} ändern", callback_data="morning_subjects"
-            )
-        ]
-    )
+    rows.append([InlineKeyboardButton(f"⬅️ {subject} ändern", callback_data="morning_subjects")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -288,9 +317,7 @@ def build_morning_planning_keyboard(jokers_left: int) -> InlineKeyboardMarkup:
         for subject in ALLOWED_SUBJECTS[:2]
     ]
     joker_button = [
-        InlineKeyboardButton(
-            f"🏖️ Joker ({max(0, jokers_left)} übrig)", callback_data="use_joker"
-        )
+        InlineKeyboardButton(f"🏖️ Joker ({max(0, jokers_left)} übrig)", callback_data="use_joker")
     ]
     return InlineKeyboardMarkup([subject_buttons, joker_button])
 
@@ -348,6 +375,11 @@ def build_weekly_overview(chat_id: int) -> str:
     total_minutes = sum(plan.minutes for plan in week_plan.values())
     overview_lines.append(f"📅 Geplante Tage: {planned_days}/7")
     overview_lines.append(f"Gesamtzeit: {_format_total_minutes(total_minutes)}")
+    overview_lines.append("")
+    overview_lines.append("📌 Tagesfarben:")
+    overview_lines.append(
+        " ".join(f"{DAY_OVERVIEW_ICONS.get(day, '•')} {day[:2].upper()}" for day in WEEKDAYS)
+    )
     overview_lines.append("")
     overview_lines.append("⏰ **ERINNERUNGSZEITEN**")
 
@@ -829,7 +861,8 @@ async def daily_check(context: ContextTypes.DEFAULT_TYPE) -> None:
             LOGGER.info("daily_check: No parent notification (PARENT_CHAT_ID not set)")
         else:
             LOGGER.info(
-                "daily_check: Parent chat equals student chat – skipping duplicate info notification"
+                "daily_check: Parent chat equals student chat – "
+                "skipping duplicate info notification"
             )
 
         if PARENT_CHAT_ID:
@@ -889,9 +922,7 @@ def schedule_dynamic_job(app: Application, chat_id: int, subject: str, time_str:
     now_dt = datetime.now(TIMEZONE)
     target_dt = datetime.combine(now_dt.date(), time(hour=hh, minute=mm), tzinfo=TIMEZONE)
     if target_dt <= now_dt:
-        LOGGER.info(
-            "schedule_dynamic_job: Skipping past time %s for chat %s", time_str, chat_id
-        )
+        LOGGER.info("schedule_dynamic_job: Skipping past time %s for chat %s", time_str, chat_id)
         return False
 
     safe_subject = abs(hash(subject)) % 10000
@@ -905,9 +936,7 @@ def schedule_dynamic_job(app: Application, chat_id: int, subject: str, time_str:
         name=job_name,
         data={"chat_id": chat_id, "subject": subject, "time_str": time_str},
     )
-    LOGGER.info(
-        "schedule_dynamic_job: Scheduled %s for chat %s at %s", subject, chat_id, time_str
-    )
+    LOGGER.info("schedule_dynamic_job: Scheduled %s for chat %s at %s", subject, chat_id, time_str)
     return True
 
 
@@ -1035,7 +1064,8 @@ def schedule_all_reminders(app):
     LOGGER.info(f"schedule_all_reminders: PARENT_CHAT_ID = {PARENT_CHAT_ID}")
 
     LOGGER.info(
-        "schedule_all_reminders: Completed. Scheduled %s dynamic plans + morning planning + daily check",
+        "schedule_all_reminders: Completed. Scheduled %s dynamic plans + "
+        "morning planning + daily check",
         dynamic_count,
     )
 

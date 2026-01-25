@@ -48,7 +48,9 @@ class UserSettings:
         raw_daily_plan = data.get("daily_dynamic_plan", [])
         if not isinstance(raw_daily_plan, list):
             raw_daily_plan = []
-        daily_dynamic_plan: List[Dict[str, Any]] = [dict(item) for item in raw_daily_plan if isinstance(item, dict)]
+        daily_dynamic_plan: List[Dict[str, Any]] = [
+            dict(item) for item in raw_daily_plan if isinstance(item, dict)
+        ]
         last_reset = data.get("last_joker_reset_iso")
         last_reset_str = last_reset if isinstance(last_reset, str) else ""
         return UserSettings(
