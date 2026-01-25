@@ -7,8 +7,9 @@ from pathlib import Path
 from random import choice
 from zoneinfo import ZoneInfo
 
+from core.logging_config import setup_logging
 from models.settings import DayPlan, SettingsRepository, UserSettings, WEEKDAYS
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Update
 from telegram.ext import (
     Application,
     ApplicationBuilder,
@@ -84,6 +85,13 @@ def _load_timezone() -> timezone | ZoneInfo:
 
 
 TIMEZONE = _load_timezone()
+
+
+ALLOWED_SUBJECTS = ["Mathe", "Englisch"]
+DYNAMIC_PLANNING_TIMES = ["07:30", "09:00", "14:00", "16:30", "18:30", "20:30"]
+DURATION_CHOICES = [15, 30, 45, 60, 90, 120]
+MIN_MINUTES = 1
+MAX_MINUTES = 180
 
 
 def get_shared_chat_ids() -> list[int]:
@@ -180,6 +188,48 @@ def _reminder_time_icon(time_str: str) -> str:
 def build_reminder_message(settings: UserSettings) -> str:
     """Build a reminder message for the current day."""
     today = WEEKDAYS[datetime.now(TIMEZONE).weekday()]
+
+
+def get_main_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        [["📋 Menü"]], resize_keyboard=True, one_time_keyboard=False, selective=True
+    )
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message:
+        return
+    chat_id = update.effective_chat.id
+    repo.load(chat_id)
+    await update.message.reply_text(
+        "Willkommen beim Lernplan Reminder Bot! Nutze den Menü-Button oder /menu.",
+        reply_markup=get_main_keyboard(),
+    )
+
+
+async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message:
+        return
+    await update.message.reply_text(
+        "Nutze /menu für das Hauptmenü, /plan für den Wochenplan und /heute für die Übersicht.",
+        reply_markup=get_main_keyboard(),
+    )
+
+
+async def plan_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message:
+        return
+    await update.message.reply_text(
+        "Wochentage wählen:", reply_markup=build_weekday_menu()
+    )
+
+
+async def heute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message:
+        return
+    chat_id = update.effective_chat.id
+    overview_text = build_weekly_overview(chat_id)
+    await update.message.reply_text(overview_text)
 
 
 def build_main_menu() -> InlineKeyboardMarkup:
@@ -568,49 +618,36 @@ async def handle_free_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     settings = repo.load(chat_id)
 
     # Handle menu button
+    if text == "📋 Menü":
+        await update.message.reply_text("Hauptmenü:", reply_markup=build_main_menu())
+        return
 
-
-
-
-
-
-
-
-
-
-
-
-
-        if text == "📋 Menü":
-            await update.message.reply_text("Hauptmenü:", reply_markup=build_main_menu())
+    if "awaiting_minutes" in context.user_data:
+        weekday, subject = context.user_data.pop("awaiting_minutes")
+        try:
+            minutes_value = int(text)
+            if not (MIN_MINUTES <= minutes_value <= MAX_MINUTES):
+                raise ValueError("Minutes out of range")
+        except (ValueError, AttributeError):
+            await update.message.reply_text(choice(FUNNY_NUMBER_ERRORS))
             return
 
-        if "awaiting_minutes" in context.user_data:
-            weekday, subject = context.user_data.pop("awaiting_minutes")
-            try:
-                minutes_value = int(text)
-                if not (MIN_MINUTES <= minutes_value <= MAX_MINUTES):
-                    raise ValueError("Minutes out of range")
-            except (ValueError, AttributeError):
-                await update.message.reply_text(choice(FUNNY_NUMBER_ERRORS))
-                return
+        if chat_id in get_shared_chat_ids():
+            week_plan = get_shared_week_plan()
+            week_plan[weekday] = DayPlan(subject=subject, minutes=minutes_value)
+            sync_week_plan(week_plan)
+        else:
+            settings.week_plan[weekday] = DayPlan(subject=subject, minutes=minutes_value)
+            repo.save(settings)
 
-            if chat_id in get_shared_chat_ids():
-                week_plan = get_shared_week_plan()
-                week_plan[weekday] = DayPlan(subject=subject, minutes=minutes_value)
-                sync_week_plan(week_plan)
-            else:
-                settings.week_plan[weekday] = DayPlan(subject=subject, minutes=minutes_value)
-                repo.save(settings)
+        schedule_all_reminders(context.application)
+        await update.message.reply_text(
+            f"Gespeichert: {weekday.capitalize()} – {subject} ({minutes_value} Minuten).",
+            reply_markup=get_main_keyboard(),
+        )
+        return
 
-            schedule_all_reminders(context.application)
-            await update.message.reply_text(
-                f"Gespeichert: {weekday.capitalize()} – {subject} ({minutes_value} Minuten).",
-                reply_markup=get_main_keyboard(),
-            )
-            return
-
-        await update.message.reply_text(choice(FUNNY_ERROR_MESSAGES))
+    await update.message.reply_text(choice(FUNNY_ERROR_MESSAGES))
 
 
 async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
