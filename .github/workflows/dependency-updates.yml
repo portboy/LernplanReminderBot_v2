@@ -10,6 +10,7 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  security-events: write
 
 jobs:
   security-check:
@@ -34,6 +35,7 @@ jobs:
       run: |
         pip install pip-audit
         pip-audit --desc || echo "::warning::Security vulnerabilities detected. Please review."
+      continue-on-error: true
     
     - name: Check for outdated dependencies
       id: outdated
@@ -93,7 +95,7 @@ jobs:
     
     - name: Run tests to ensure compatibility
       run: |
-        pytest tests/ -v
+        pytest -v
 
   docker-security:
     name: Docker Image Security Scan
@@ -107,7 +109,7 @@ jobs:
         docker build -t lernplan-bot:scan .
     
     - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.24.0
       with:
         image-ref: 'lernplan-bot:scan'
         format: 'sarif'
