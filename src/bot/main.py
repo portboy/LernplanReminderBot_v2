@@ -1,6 +1,25 @@
+from __future__ import annotations
+
 import logging
 import os
+from datetime import datetime, time, timezone
+from pathlib import Path
+from random import choice
+from zoneinfo import ZoneInfo
 
+from models.settings import DayPlan, SettingsRepository, UserSettings, WEEKDAYS
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import (
+    Application,
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
+
+LOGGER = logging.getLogger(__name__)
 
 HORSE_HAPPY_IMAGES = [
     "https://images.pexels.com/photos/1996333/pexels-photo-1996333.jpeg",
@@ -30,6 +49,132 @@ FUNNY_NUMBER_ERRORS = [
     "🎪 Diese Zahl ist außerhalb meines Universums! 1-180 bitte!",
     "🚀 Diese Zahl ist zu weit weg! Bleib zwischen 1 und 180.",
 ]
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = Path(os.getenv("DATA_DIR", "data"))
+if not DATA_DIR.is_absolute():
+    DATA_DIR = REPO_ROOT / DATA_DIR
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+repo = SettingsRepository(DATA_DIR)
+
+
+def _parse_chat_id(env_name: str) -> int | None:
+    value = os.getenv(env_name)
+    if not value:
+        return None
+    try:
+        return int(value.strip())
+    except ValueError:
+        LOGGER.warning("Invalid chat id for %s: %s", env_name, value)
+        return None
+
+
+STUDENT_CHAT_ID = _parse_chat_id("STUDENT_CHAT_ID")
+PARENT_CHAT_ID = _parse_chat_id("PARENT_CHAT_ID")
+
+
+def _load_timezone() -> timezone | ZoneInfo:
+    tz_name = os.getenv("TIMEZONE", "Europe/Berlin")
+    try:
+        return ZoneInfo(tz_name)
+    except Exception:
+        LOGGER.warning("Unknown timezone '%s', falling back to UTC", tz_name)
+        return timezone.utc
+
+
+TIMEZONE = _load_timezone()
+
+
+def get_shared_chat_ids() -> list[int]:
+    ids: list[int] = []
+    if STUDENT_CHAT_ID:
+        ids.append(STUDENT_CHAT_ID)
+    if PARENT_CHAT_ID and PARENT_CHAT_ID not in ids:
+        ids.append(PARENT_CHAT_ID)
+    return ids
+
+
+def get_shared_reminder_times() -> list[str]:
+    for candidate in (STUDENT_CHAT_ID, PARENT_CHAT_ID):
+        if candidate is None:
+            continue
+        settings = repo.load(candidate)
+        if settings.reminder_times:
+            return list(settings.reminder_times)
+    return []
+
+
+def _clone_week_plan(plan: dict[str, DayPlan]) -> dict[str, DayPlan]:
+    return {day: DayPlan(subject=value.subject, minutes=value.minutes) for day, value in plan.items()}
+
+
+def get_shared_week_plan() -> dict[str, DayPlan]:
+    for candidate in (STUDENT_CHAT_ID, PARENT_CHAT_ID):
+        if candidate is None:
+            continue
+        settings = repo.load(candidate)
+        if settings.week_plan:
+            return _clone_week_plan(settings.week_plan)
+    return {}
+
+
+def sync_reminder_times(new_times: list[str]) -> None:
+    shared_ids = get_shared_chat_ids()
+    if not shared_ids:
+        return
+    normalized = list(new_times)
+    for chat_id in shared_ids:
+        settings = repo.load(chat_id)
+        settings.reminder_times = normalized
+        repo.save(settings)
+
+
+def sync_week_plan(new_plan: dict[str, DayPlan]) -> None:
+    plan = _clone_week_plan(new_plan) if new_plan else {}
+    shared_ids = get_shared_chat_ids()
+    if not shared_ids:
+        return
+    for chat_id in shared_ids:
+        settings = repo.load(chat_id)
+        settings.week_plan = _clone_week_plan(plan)
+        repo.save(settings)
+
+
+def _format_duration(minutes: int) -> str:
+    if minutes <= 0:
+        return "0min"
+    hours, remainder = divmod(minutes, 60)
+    fragments: list[str] = []
+    if hours:
+        fragments.append(f"{hours}h")
+    if remainder:
+        fragments.append(f"{remainder}min")
+    return " ".join(fragments) if fragments else "0min"
+
+
+def _format_total_minutes(minutes: int) -> str:
+    if minutes <= 0:
+        return "0 Minuten"
+    return _format_duration(minutes)
+
+
+def _reminder_time_icon(time_str: str) -> str:
+    try:
+        hour = int(time_str.split(":")[0])
+    except (ValueError, IndexError):
+        return "⏰"
+    if 5 <= hour < 9:
+        return "🌅"
+    if 9 <= hour < 12:
+        return "☀️"
+    if 12 <= hour < 16:
+        return "☀️"
+    if 16 <= hour < 19:
+        return "🌤️"
+    if 19 <= hour < 22:
+        return "🌆"
+    return "🌙"
 
 
 def build_reminder_message(settings: UserSettings) -> str:
@@ -117,10 +262,50 @@ def build_weekly_overview(chat_id: int) -> str:
         week_plan = get_shared_week_plan()
         reminder_times = get_shared_reminder_times()
     else:
-            time_display.append(f"{icon} **{time}**")
-        overview_lines.append(" • ".join(time_display))
+        settings = repo.load(chat_id)
+        week_plan = settings.week_plan
+        reminder_times = settings.reminder_times
+
+    overview_lines: list[str] = [
+        "📊 **WOCHENÜBERSICHT**",
+        "```",
+        "┌─────────────┬─────────────┬────────┐",
+        "│ Tag         │ Fach        │ Zeit   │",
+        "├─────────────┼─────────────┼────────┤",
+    ]
+
+    for weekday in WEEKDAYS:
+        plan = week_plan.get(weekday)
+        day_label = weekday.capitalize()
+        if plan:
+            subject = plan.subject
+            duration = _format_duration(plan.minutes)
+        else:
+            subject = "---"
+            duration = "---"
+        overview_lines.append(f"│ {day_label:<11} │ {subject:<11} │ {duration:<6} │")
+
+    overview_lines.extend(
+        [
+            "└─────────────┴─────────────┴────────┘",
+            "```",
+            "",
+            "📈 **ZUSAMMENFASSUNG**",
+        ]
+    )
+
+    planned_days = len(week_plan)
+    total_minutes = sum(plan.minutes for plan in week_plan.values())
+    overview_lines.append(f"📅 Geplante Tage: {planned_days}/7")
+    overview_lines.append(f"Gesamtzeit: {_format_total_minutes(total_minutes)}")
+    overview_lines.append("")
+    overview_lines.append("⏰ **ERINNERUNGSZEITEN**")
+
+    if reminder_times:
+        for reminder in sorted(reminder_times):
+            overview_lines.append(f"{_reminder_time_icon(reminder)} **{reminder}**")
     else:
-        overview_lines.append("⚠️ _Keine Erinnerungszeiten festgelegt_")
+        overview_lines.append("Keine Erinnerungszeiten")
 
     return "\n".join(overview_lines)
 
