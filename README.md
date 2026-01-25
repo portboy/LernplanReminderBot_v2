@@ -1,99 +1,95 @@
-# Lernplan Reminder Bot
+# Lernplan Reminder Bot v2
 
-Telegram Bot zur täglichen Erinnerung an einen Lernplan (z.B. Mathe / Englisch) für einen Schüler bzw. eine Schülerin – mit Erinnerungen, Tagesplan und täglicher Bestätigungs-Abfrage für Eltern/Betreuer.
+LernplanReminderBot_v2 ist eine vollständig neugestaltete Version des Lernplan-Reminder-Bots mit einer neuen Nutzerführung, einem klareren Menüfluss und deutlich strukturierteren Erinnerungen für Eltern und Schüler.
 
 ## 📚 Dokumentation
 
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Ausführliche Deployment-Anleitung für Docker, Unraid, etc.
-- **[.env.example](.env.example)** - Beispiel-Konfiguration
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** – ausführlicher Deployment-Guide (Docker, GHCR, Unraid)
+- **[.env.example](.env.example)** – Vorlage für alle erforderlichen Umgebungsvariablen
 
 ## Features
 Aktuell implementiert:
-* **Geteilter Wochenplan**: Beide Nutzer (Eltern/Schüler) teilen denselben Plan und können ihn bearbeiten
-* **Geteilte Erinnerungszeiten**: Bis zu 3 tägliche Zeiten, synchronisiert zwischen beiden Nutzern
-* **Grafische Zeitauswahl**: Benutzerfreundliche Stunden/Minuten-Picker statt Texteingabe
-* **Schöne Wochenübersicht**: Visuell ansprechend mit Emojis, Tabelle und besserer Formatierung
-* **Lustige Fehlermeldungen**: Amüsante statt technische Fehlermeldungen für bessere Benutzererfahrung
-* **Menü-Button**: Permanenter "📋 Menü" Button für einfachen Zugang zu allen Funktionen
-* 20:00 Uhr Abfrage an den Schüler: "Hast du heute gelernt?" mit Ja/Nein Buttons
-* Benachrichtigung an Eltern/Betreuer über gesendete Erinnerungen & Antwort der 20-Uhr-Frage
-* Zufällige Emojis in Erinnerungen
-* Positives (Pferde-Bilder) / negatives (traurige GIFs) Feedback
-* Commands: `/start`, `/help`, `/plan`, `/zeiten`, `/addzeit`, `/delzeit`, `/heute`, `/test`, `/menu`
-* Vollständiges Inline-Menü zur Bearbeitung von Zeiten und Wochenplan (Fach & Minuten)
-* JSON-Speicherung je Chat unter `data/`
-* Scheduling per python-telegram-bot JobQueue (Daily Jobs, Timezone Europe/Berlin)
-* Docker & docker-compose + vorgebaute Container Images (GHCR)
-
-Geplant / Ideen:
-* Zusätzliche optionale Fächer (aktuell Mathe, Englisch – Architektur erlaubt Erweiterung)
-* Mehr Testabdeckung (Callback- & Scheduling-Logik)
-* Optionale Healthcheck- und Watchtower-Beispiele
-* Erweiterte Statistiken und Lernfortschritt-Tracking
+* **Geteilter Wochenplan** für Eltern und Schüler mit Live-Sync
+* **Geteilte Erinnerungszeiten** (bis zu 3 Einträge, synchronisiert zwischen Accounts)
+* **Grafische Zeitauswahl** über komfortable Stunden-/Minuten-Picker
+* **Übersichtliche Wochenübersicht** mit Emojis, Tabelle und klarer Formatierung
+* **Freundliche Texte** statt technischer Fehlermeldungen
+* **Permanenter Menü-Button** (📋) für schnellen Zugriff auf alle Funktionen
+* **Tägliche 20:00-Abfrage** mit Ja/Nein-Feldern für Lern-Feedback
+* **Benachrichtigungen an Eltern** zu Erinnerungen und 20:00-Antworten
+* **Zufällige Emojis** in Erinnerungen sowie visuelles Feedback
+* **Vollständiges Inline-Menü** zum Bearbeiten von Fächern, Minuten und Zeiten
+* **JSON-basierte Nutzerpersistenz** im `data/`-Verzeichnis
+* **Scheduling per python-telegram-bot JobQueue** (Europa/Berlin)
+* **Docker + GHCR-Images** für Headless-Hosting auf Servern oder Unraid
 
 ## Voraussetzungen
 - Python 3.11+
-- Telegram Bot Token (von @BotFather)
+- Telegram Bot Token (über @BotFather)
+- Optional: Docker und docker-compose (für Containerbetrieb)
 
-### Repository klonen (falls du lokal bauen willst)
-Variante A: Git ist installiert:
+## Repository klonen (falls du lokal bauen möchtest)
+
+### Variante A: Git ist installiert
 ```bash
 cd /mnt/user/appdata/builds
-git clone https://github.com/portboy/LernplanReminderBot.git
-cd LernplanReminderBot
+git clone https://github.com/portboy/LernplanReminderBot_v2.git
+cd LernplanReminderBot_v2
 ```
 
-Variante B: ZIP Download:
-1. Auf GitHub: "Code" → "Download ZIP".
-2. ZIP entpacken nach `/mnt/user/appdata/builds/LernplanReminderBot`.
-3. Wechsel in dieses Verzeichnis.
+### Variante B: ZIP-Download von GitHub
+1. Auf GitHub: „Code“ → „Download ZIP“.
+2. ZIP nach `/mnt/user/appdata/builds/LernplanReminderBot_v2` entpacken.
+3. In das Verzeichnis wechseln: `cd /mnt/user/appdata/builds/LernplanReminderBot_v2`
 
-Dann kannst du wie unten beschrieben bauen.
+Danach gelten die unten beschriebenen Build- und Deployment-Schritte.
 
-<!-- GHCR Direktnutzung ist jetzt weiter unten in Abschnitt A strukturiert -->
-
-## Installation (Lokal)
+## Installation (lokal)
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .[dev]
-cp .env.example .env  # Token eintragen
+cp .env.example .env  # Token und Chat IDs eintragen
 python -m bot.main
 ```
 
-## Docker Build & Run
+## Docker Build & Run (lokal)
 ```bash
-docker build -t lernplan-bot .
+docker build -t lernplan-reminder-bot-v2 .
 cp .env.example .env  # Token setzen
-# .env bearbeiten
+# .env konfigurieren
 
-docker run -d --name lernplan-bot --restart unless-stopped \
+docker run -d --name lernplan-reminder-bot-v2 --restart unless-stopped \
   --env-file .env \
-  -v $(pwd)/data:/app/data lernplan-bot
-```
+  -v $(pwd)/data:/app/data \
+  lernplan-reminder-bot-v2
 
-```bash
 docker compose up -d --build
 ```
 
-## Unraid Deployment (ausführlich)
+## Unraid-Deployment (ausführlich)
 
 ### Ziel
-Der Bot läuft dauerhaft auf deinem Unraid Server. Einstellungen & Plan bleiben nach Updates erhalten.
+Der Bot läuft dauerhaft auf deinem Unraid-Server. Einstellungen und Lernpläne bleiben während Updates erhalten.
 
-### Verzeichnisstruktur (Host)
+### Ordnerstruktur (Host)
 ```
-/mnt/user/appdata/LernplanReminderBot/
-  ├─ data/              # JSON Dateien (automatisch erzeugt)
-  └─ .env               # Environment Variablen
+/mnt/user/appdata/LernplanReminderBot_v2/
+  ├─ data/              # JSON-Dateien (automatisch)
+  └─ .env               # Umgebungsvariablen
 ```
 
-### 1. AppData Ordner anlegen
+### 1. AppData-Verzeichnis anlegen
 ```bash
-mkdir -p /mnt/user/appdata/LernplanReminderBot/data
+mkdir -p /mnt/user/appdata/LernplanReminderBot_v2/data
 ```
 
+### 2. .env anlegen
+```bash
+nano /mnt/user/appdata/LernplanReminderBot_v2/.env
 ```
+Inhalt:
+```env
 TELEGRAM_TOKEN=8463xxxxxxxxxxxxxxxxxxxx
 LOG_LEVEL=INFO
 DATA_DIR=data
@@ -101,139 +97,135 @@ PARENT_CHAT_ID=193788187
 STUDENT_CHAT_ID=6720705536
 ```
 Hinweise:
-- Chat IDs erst setzen, nachdem beide (Eltern & Schüler) einmal `/start` geschickt haben.
-- `LOG_LEVEL=DEBUG` für Diagnose.
+- Chat-IDs erst setzen, nachdem beide Nutzer `/start` gesendet haben.
+- `LOG_LEVEL=DEBUG` für detailliertes Logging.
 
-### 3. (Option A) Vorgefertigtes Image starten (empfohlen)
+### 3. Option A: Vorgefertigtes GHCR-Image verwenden (empfohlen)
 ```bash
 docker run -d \
-  --name lernplan-reminder-bot \
+  --name lernplan-reminder-bot-v2 \
   --restart unless-stopped \
-  --env-file /mnt/user/appdata/LernplanReminderBot/.env \
-  -v /mnt/user/appdata/LernplanReminderBot/data:/app/data \
-  ghcr.io/portboy/lernplan-reminder-bot:latest
+  --env-file /mnt/user/appdata/LernplanReminderBot_v2/.env \
+  -v /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data \
+  ghcr.io/portboy/lernplan-reminder-bot-v2:latest
 ```
 
-### 4. (Option B) Image lokal bauen & starten
-Falls Repo lokal geklont unter z.B. `/mnt/user/appdata/builds/LernplanReminderBot`:
+### 4. Option B: Eigenes Image lokal bauen
 ```bash
-cd /mnt/user/appdata/builds/LernplanReminderBot
-docker build -t lernplan-reminder-bot:latest .
+cd /mnt/user/appdata/builds/LernplanReminderBot_v2
+docker build -t lernplan-reminder-bot-v2:latest .
 docker run -d \
-  --name lernplan-reminder-bot \
+  --name lernplan-reminder-bot-v2 \
   --restart unless-stopped \
-  --env-file /mnt/user/appdata/LernplanReminderBot/.env \
-  -v /mnt/user/appdata/LernplanReminderBot/data:/app/data \
-  lernplan-reminder-bot:latest
+  --env-file /mnt/user/appdata/LernplanReminderBot_v2/.env \
+  -v /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data \
+  lernplan-reminder-bot-v2:latest
 ```
 
-### 5. docker compose (lokaler Build)
-Datei `/mnt/user/appdata/LernplanReminderBot/docker-compose.yml`:
+### 5. docker-compose (lokaler Build)
+`/mnt/user/appdata/LernplanReminderBot_v2/docker-compose.yml`:
 ```yaml
 version: "3.9"
 services:
-  lernplan-bot:
-    image: lernplan-reminder-bot:latest
-    build: /mnt/user/appdata/builds/LernplanReminderBot
+  lernplan-reminder-bot-v2:
+    image: lernplan-reminder-bot-v2:latest
+    build: /mnt/user/appdata/builds/LernplanReminderBot_v2
     restart: unless-stopped
-    env_file: /mnt/user/appdata/LernplanReminderBot/.env
+    env_file: /mnt/user/appdata/LernplanReminderBot_v2/.env
     volumes:
-      - /mnt/user/appdata/LernplanReminderBot/data:/app/data
+      - /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data
 ```
 Starten:
 ```bash
-docker compose -f /mnt/user/appdata/LernplanReminderBot/docker-compose.yml up -d --build
+docker compose -f /mnt/user/appdata/LernplanReminderBot_v2/docker-compose.yml up -d --build
 ```
 
 ### 6. Unraid GUI (Template manuell)
-1. Docker Tab → "Add Container" → Advanced View.
-2. Repository: `ghcr.io/portboy/lernplan-reminder-bot:latest` (oder lokaler Build-Name).
-3. Add Path: Host=`/mnt/user/appdata/LernplanReminderBot/data` → Container=`/app/data`.
+1. Docker Tab → „Add Container“ → „Advanced View“.
+2. Repository: `ghcr.io/portboy/lernplan-reminder-bot-v2:latest` oder `lernplan-reminder-bot-v2:latest` (lokal).
+3. Add Path: Host `/mnt/user/appdata/LernplanReminderBot_v2/data` → Container `/app/data`.
 4. Add Variable: `TELEGRAM_TOKEN` (Pflicht).
 5. Add Variable: `PARENT_CHAT_ID`, `STUDENT_CHAT_ID`, optional `LOG_LEVEL`.
-6. Keine Ports nötig.
+6. Keine Ports erforderlich.
 7. Apply.
 
-### 7. Test
-1. In Telegram `/start` von beiden Accounts.
+### 7. Testen
+1. Beide Accounts (Eltern & Schüler) `/start` senden.
 2. `/menu` ausprobieren.
-3. Zeit hinzufügen (Button ➜ Eingabe `08:00`).
-4. `/test` senden → Test-Erinnerung sollte erscheinen.
+3. Zeit eintragen (Button → z. B. `08:00`).
+4. `/test` senden → Erinnerung wird ausgelöst.
 
 ### 8. Logs prüfen
 ```bash
-docker logs -f lernplan-reminder-bot
+docker logs -f lernplan-reminder-bot-v2
 ```
 
-### 9. Update-Prozess
-Variante Registry (empfohlen):
+### 9. Updates
+#### Variante Registry (empfohlen)
 ```bash
-docker pull ghcr.io/portboy/lernplan-reminder-bot:latest
-docker stop lernplan-reminder-bot
-docker rm lernplan-reminder-bot
+docker pull ghcr.io/portboy/lernplan-reminder-bot-v2:latest
+docker stop lernplan-reminder-bot-v2
+docker rm lernplan-reminder-bot-v2
 docker run -d \
-  --name lernplan-reminder-bot \
+  --name lernplan-reminder-bot-v2 \
   --restart unless-stopped \
-  --env-file /mnt/user/appdata/LernplanReminderBot/.env \
-  -v /mnt/user/appdata/LernplanReminderBot/data:/app/data \
-  ghcr.io/portboy/lernplan-reminder-bot:latest
+  --env-file /mnt/user/appdata/LernplanReminderBot_v2/.env \
+  -v /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data \
+  ghcr.io/portboy/lernplan-reminder-bot-v2:latest
+```
+#### Variante lokaler Build
+```bash
+docker stop lernplan-reminder-bot-v2
+docker rm lernplan-reminder-bot-v2
+# Repo aktualisieren
+docker build -t lernplan-reminder-bot-v2:latest .
+docker run -d \
+  --name lernplan-reminder-bot-v2 \
+  --restart unless-stopped \
+  --env-file /mnt/user/appdata/LernplanReminderBot_v2/.env \
+  -v /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data \
+  lernplan-reminder-bot-v2:latest
 ```
 
-Variante lokaler Build:
+### 10. Backup
 ```bash
-docker stop lernplan-reminder-bot
-docker rm lernplan-reminder-bot
-# (Repo aktualisieren: git pull oder neue Version kopieren)
-docker build -t lernplan-reminder-bot:latest .
-docker run -d --name lernplan-reminder-bot \
-  --restart unless-stopped \
-  --env-file /mnt/user/appdata/LernplanReminderBot/.env \
-  -v /mnt/user/appdata/LernplanReminderBot/data:/app/data \
-  lernplan-reminder-bot:latest
+tar czf lernplan-bot-backup.tgz -C /mnt/user/appdata LernplanReminderBot_v2
 ```
-Persistente Daten bleiben erhalten.
-
-### 10. Backup (empfohlen)
-```bash
-tar czf lernplan-bot-backup.tgz -C /mnt/user/appdata LernplanReminderBot
-```
-Wiederherstellung: Archiv entpacken, Container neu starten.
 
 ### 11. Häufige Probleme
 | Symptom | Ursache | Lösung |
 |---------|---------|--------|
-| Keine Bot-Antwort | Falscher Token | Token prüfen / Logs ansehen |
-| 20-Uhr Frage fehlt | `STUDENT_CHAT_ID` fehlt / Container nach 20:00 gestartet | ID setzen & bis morgen warten |
-| Keine Eltern-Info | `PARENT_CHAT_ID` nicht gesetzt | In `.env` ergänzen |
-| Keine Erinnerungen | Zeit noch nicht erreicht / Job nicht neu geplant | Warten oder Zeit neu speichern (/menu) |
-| JSON fehlt | Chat hat nie `/start` gesendet | `/start` senden |
+| Keine Bot-Antwort | Token fehlt/fehlerhaft | Token kontrollieren, Logs prüfen |
+| 20:00-Frage fehlt | `STUDENT_CHAT_ID` fehlt oder Container nach 20:00 gestartet | ID setzen & bis morgen warten |
+| Keine Eltern-Info | `PARENT_CHAT_ID` fehlt | ID ergänzen (Container neu starten) |
+| Erinnerungen fehlen | Zeit noch nicht erreicht / Jobs nicht geplant | `/menu` → Zeit neu speichern |
+| JSON-Datei fehlt | Chat hat nie `/start` gesendet | `/start` von beiden anstoßen |
 
 ### 12. Sicherheit
-Token privat halten. Bei Verdacht → BotFather `/revoke` und neuen Token setzen.
+Token niemals öffentlich teilen. Bei Verdacht: BotFather `/revoke` & neuen Token setzen.
 
 ### 13. Entfernen
 ```bash
-docker stop lernplan-reminder-bot
-docker rm lernplan-reminder-bot
-# Optional Daten löschen:
-rm -rf /mnt/user/appdata/LernplanReminderBot
+docker stop lernplan-reminder-bot-v2
+docker rm lernplan-reminder-bot-v2
+rm -rf /mnt/user/appdata/LernplanReminderBot_v2
 ```
 
 ### 14. Optionale Erweiterungen
-- Watchtower für Auto-Updates.
-- Separates Logging-Verzeichnis (`/app/logs`).
-- Healthcheck Skript (kann später ergänzt werden).
+- Watchtower für automatische Updates
+- Separates Logging-Verzeichnis (`/app/logs`)
+- Healthchecks über eigenes Skript
 
 ## .env Variablen
 | Variable | Bedeutung |
 |----------|-----------|
-| `TELEGRAM_TOKEN` | Bot API Token |
-| `LOG_LEVEL` | z.B. INFO / DEBUG |
-| `DATA_DIR` | Pfad für JSON Daten (Default: data) |
-| `PARENT_CHAT_ID` | Chat ID des Elternteils / Betreuers für Info-Benachrichtigungen |
-| `STUDENT_CHAT_ID` | Chat ID des Schülers für 20-Uhr-Abfrage |
+| `TELEGRAM_TOKEN` | Telegram Bot-Token |
+| `LOG_LEVEL` | z. B. INFO / DEBUG |
+| `DATA_DIR` | Pfad für JSON-Daten (Default: data) |
+| `PARENT_CHAT_ID` | Eltern-/Betreuer-Chat-ID |
+| `STUDENT_CHAT_ID` | Schüler-Chat-ID |
 
-Migration: Falls du eine ältere Version genutzt hast, ersetze in deiner `.env` den alten Namen `CHILD_CHAT_ID` durch `STUDENT_CHAT_ID` (Inhalt = gleiche ID). Alte Container können sonst die Schüler-ID nicht mehr finden.
+Migration: Alte Konfigurationen nutzen `CHILD_CHAT_ID`. Diese muss auf `STUDENT_CHAT_ID` umbenannt werden (gleiche ID).
 
 ## Datenstruktur
 `data/user_<chat_id>.json`
@@ -254,21 +246,20 @@ pytest -q
 ```
 
 ## Chat IDs ermitteln
-Einfachster Weg: Beide Nutzer (Eltern & Schüler) senden einmal `/start` an den Bot. Danach findest du die Chat IDs in den erzeugten Dateien unter `data/` (Dateiname `user_<chatid>.json`). Diese Werte in `.env` als `PARENT_CHAT_ID` und `STUDENT_CHAT_ID` eintragen und Container neu starten.
+Beide Nutzer (Eltern & Schüler) senden am besten einmal `/start`. Danach stehen die Chat-IDs als Dateinamen in `data/` (z. B. `user_123456.json`). Diese Werte in `.env` als `PARENT_CHAT_ID` und `STUDENT_CHAT_ID` eintragen und Container einmal neu starten.
 
 ## Geteilte Funktionalität
-Wenn sowohl `PARENT_CHAT_ID` als auch `STUDENT_CHAT_ID` konfiguriert sind, teilen sich beide Nutzer:
-* **Wochenplan**: Änderungen von einem Nutzer werden sofort auch beim anderen sichtbar
-* **Erinnerungszeiten**: Alle Zeiten werden zwischen beiden Accounts synchronisiert
-* **Wochenübersicht**: Zeigt immer den aktuellen geteilten Stand an
+Wenn sowohl `PARENT_CHAT_ID` als auch `STUDENT_CHAT_ID` gesetzt sind, teilen sich beide Nutzer:
+* **Wochenplan** – Änderungen laden für beide Nutzer sofort nach
+* **Erinnerungszeiten** – identische Zeiten für beide Accounts
+* **Wochenübersicht** – zeigt stets den aktuellen Stand des gemeinsamen Lernplans
 
-Dies ermöglicht es beiden Nutzern, gemeinsam den Lernplan zu verwalten und zu bearbeiten.
+Dadurch lässt sich der Lernplan zusammen verwalten.
 
 ## Lizenz
 MIT
 
 ## Sicherheitshinweis
-Gib den echten Token niemals öffentlich weiter. Verwende `.env` (diese Datei wird durch `.gitignore` ausgeschlossen). Falls Token kompromittiert: Beim BotFather regenerieren.
+Nutze `.env` für Tokens. Die Datei ist im Repository über `.gitignore` ausgeschlossen. Sollte der Token kompromittiert sein: BotFather `/revoke` & neuen Token einrichten.
 
----
-Hinweis: Variable `CHILD_CHAT_ID` wurde in `STUDENT_CHAT_ID` umbenannt (neutralere Bezeichnung). Code & Doku sind bereits angepasst.
+Hinweis: `CHILD_CHAT_ID` wurde in `STUDENT_CHAT_ID` umbenannt; Code & Doku sind angepasst.

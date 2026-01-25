@@ -1,8 +1,8 @@
 version: "3.9"
 services:
-  lernplan-bot:
+  lernplan-reminder-bot-v2:
     build: .
-    container_name: lernplan-reminder-bot
+    container_name: lernplan-reminder-bot-v2
     restart: unless-stopped
     env_file: .env
     volumes:

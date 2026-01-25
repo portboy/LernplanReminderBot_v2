@@ -1,9 +1,9 @@
 version: "3.9"
 
 services:
-  lernplan-bot:
-    image: ghcr.io/portboy/lernplan-reminder-bot:latest
-    container_name: lernplan-reminder-bot
+  lernplan-reminder-bot-v2:
+    image: ghcr.io/portboy/lernplan-reminder-bot-v2:latest
+    container_name: lernplan-reminder-bot-v2
     restart: unless-stopped
     
     # Umgebungsvariablen aus Datei laden

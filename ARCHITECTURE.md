@@ -1,4 +1,4 @@
-## Architekturübersicht — LernplanReminderBot
+## Architekturübersicht — LernplanReminderBot_v2
 
 Unten sind zwei Darstellungen: ein Komponenten‑Diagramm (Mermaid) und ein Sequenzdiagramm für einen typischen Ablauf.
 
@@ -10,7 +10,7 @@ Unten sind zwei Darstellungen: ein Komponenten‑Diagramm (Mermaid) und ein Sequ
 flowchart TD
   User["Parent / Student (Telegram)"]
   TelegramAPI["Telegram API"]
-  BotApp["LernplanReminderBot\n(src/bot/main.py)"]
+  BotApp["LernplanReminderBot_v2\n(src/bot/main.py)"]
   Handlers["Command & Callback Handlers\n/start /menu /addzeit /plan ..."]
   Scheduler["JobQueue / APScheduler\n(scheduling, 20:00-Query, reminders)"]
   Repo["SettingsRepository\n(src/models/settings.py)\ndata/user_<chat_id>.json"]
