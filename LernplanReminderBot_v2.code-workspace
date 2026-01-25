@@ -9,6 +9,14 @@
 			"/^cd /mnt/user/code-projects/LernplanReminderBot_v2 && python - <<'PY'\nfrom pathlib import Path\nlines = Path\\('src/bot/main\\.py'\\)\\.read_text\\(\\)\\.splitlines\\(\\)\nfor i in range\\(250, 330\\):\n    if i < len\\(lines\\):\n        print\\(f\"\\{i\\+1:04d\\}: \\{lines\\[i\\]\\}\"\\)\nPY$/": {
 				"approve": true,
 				"matchCommandLine": true
+			},
+			"/^cd /mnt/user/code-projects/LernplanReminderBot_v2 && python - <<'PY'\nfrom pathlib import Path\nlines = Path\\('src/bot/main\\.py'\\)\\.read_text\\(\\)\\.splitlines\\(\\)\nfor i in range\\(730, 755\\):\n    if i < len\\(lines\\):\n        print\\(f\"\\{i\\+1:04d\\}: \\{lines\\[i\\]\\}\"\\)\nPY$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"/^cd /mnt/user/code-projects/LernplanReminderBot_v2 && python - <<'PY'\nfrom pathlib import Path\nlines = Path\\('src/bot/main\\.py'\\)\\.read_text\\(\\)\\.splitlines\\(\\)\nfor i in range\\(755, 770\\):\n    if i < len\\(lines\\):\n        print\\(f\"\\{i\\+1:04d\\}: \\{lines\\[i\\]\\}\"\\)\nPY$/": {
+				"approve": true,
+				"matchCommandLine": true
 			}
 		}
 	}

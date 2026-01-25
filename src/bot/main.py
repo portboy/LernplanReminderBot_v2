@@ -752,7 +752,8 @@ async def morning_planning_prompt(context: ContextTypes.DEFAULT_TYPE) -> None:
             reply_markup=keyboard,
         )
         LOGGER.info(
-            f"morning_planning_prompt: Prompt sent to student chat {STUDENT_CHAT_ID} (jokers={jokers_left})"
+            f"morning_planning_prompt: Prompt sent to student chat {STUDENT_CHAT_ID} "
+            f"(jokers={jokers_left})"
         )
     except Exception as e:
         LOGGER.error(f"morning_planning_prompt: Failed to send prompt: {e}", exc_info=True)
