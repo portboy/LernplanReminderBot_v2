@@ -1,148 +1,185 @@
-# Lernplan Reminder Bot v2
+# **🎓 Lernplan Reminder Bot (v2) – Der Autonomie-Coach**
 
-Lernplan Reminder Bot v2 ist die komplette Neugestaltung des früheren Lernplan-Reminder-Bots. Die neue Version setzt auf eine gemeinsame Eltern-Schüler-Erfahrung, Inline- und Reply-Menüs, grafische Zeitpicker sowie `python-telegram-bot`-gestützte Scheduler-Jobs, um tägliche Erinnerungen zuverlässig auszuliefern.
+**Schluss mit dem täglichen Eltern-Kind-Streit ums Lernen.**
 
-## Highlights der Version 2
+Dieser Telegram-Bot ist mehr als nur ein Wecker. Er ist ein digitaler Assistent, der Schülern hilft, ihren Tag selbstständig zu planen, und Eltern informiert hält, ohne dass sie "nerven" müssen.
 
-- **Shared experience:** Eltern und Schüler sehen denselben Wochenplan, identische Erinnerungszeiten und erhalten dieselben Benachrichtigungen.
-- **Inline- und Reply-Menüs:** Ein permanenter Menü-Button (📋) plus Inline-Keyboards führen durch Plan-Updates, Zeiten und Übersichten ohne zusätzliche Texteingaben.
-- **Grafische Zeitauswahl:** Komfortable Stunden-/Minuten-Picker und farbcodierte Emojis in der Wochenübersicht machen das Einstellen der Lernzeiten interaktiv.
-- **Scheduling & Jobs:** `apscheduler` und die `JobQueue` stellen tägliche 20:00-Reminder, regelmäßige Checks und Test-Reminders sicher.
-- **Persistenz:** Nutzer werden unter `data/user_<chat_id>.json` gespeichert; so lassen sich Chat-IDs direkt aus den Dateinamen ablesen.
-- **Container-Ready:** Dockerfile, docker-compose-Vorlagen und GHCR-Images erlauben schnelle Deployments auf Servern, Unraid oder lokal im Headless-Modus.
+## **🌟 Warum dieser Bot?**
 
-## Repository-Layout
+Viele Eltern kennen das Problem: Man erinnert das Kind ans Vokabellernen, das Kind fühlt sich kontrolliert, die Stimmung kippt.
 
-- `bot/main.py` – Einstiegspunkt; `python -m bot.main` startet die Telegram-Polling-Schleife und Scheduler.
-- `core/logging_config.py` – zentrale Logging-Konfiguration mit konsistenten Formatter- und Handler-Einstellungen.
-- `models/settings.py` – liest `.env` und stellt die erwarteten Variablen für den Rest der App bereit.
-- `data/` – automatisch erzeugte JSON-Dateien pro Chat (Parent/Student).
-- `userconfig/.env` – Beispielkonfiguration für lokale Tests.
-- `tests/` – Pytest-Suite für gemeinsam genutzte Funktionen.
+**Das Konzept dieses Bots ("The Autonomy Coach"):**
 
-## Voraussetzungen
+Statt starrer Befehle ("Lerne jetzt\!") setzt dieser Bot auf **Selbstbestimmung**.
 
-- Python 3.11+
-- Telegram-Bot-Token vom BotFather
-- Optional: Docker/Docker Compose / Unraid für Containerbetrieb
+1. **Das Kind entscheidet morgens selbst**, *wann* es lernen möchte.  
+2. **Der Bot ist der neutrale Assistent**, der an die *eigene* Zusage erinnert.  
+3. **Gamification (Joker-System)** sorgt für Motivation und erlaubt legitime Pausen.  
+4. **Eltern werden passiv informiert** (durch weitergeleitete Sprachnachrichten), statt aktiv kontrollieren zu müssen.
 
-## Schnellstart (lokal)
+## **🔄 Der Tagesablauf (The Core Loop)**
 
-1. Repository klonen oder per ZIP herunterladen.
-2. Virtuelle Umgebung und Abhängigkeiten installieren:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install -e .[dev]
-   ```
-3. `.env` konfigurieren:
-   ```bash
-   cp userconfig/.env .env
-   # TELEGRAM_TOKEN, STUDENT_CHAT_ID und PARENT_CHAT_ID ergänzen
-   ```
-4. Bot starten:
-   ```bash
-   set -a
-   source .env
-   set +a
-   python -m bot.main
-   ```
+So fühlt sich die Nutzung für dein Kind an:
 
-   Beim Start wird die Konfiguration eingelesen, `daily_check` geplant und der Telegram-Polling-Loop aktiviert.
+### **1️⃣ 07:30 Uhr – Der "Morning Prompt"**
 
-## Docker Build & Run (lokal)
+Der Bot weckt nicht mit Aufgaben, sondern fragt: *"Guten Morgen\! ☀️ Wie sieht dein Plan heute aus?"*
 
-```bash
-docker build -t lernplan-reminder-bot-v2 .
-cp userconfig/.env .env  # echtes Token und Chat-IDs einsetzen
+* Das Kind sieht die Fächer (z. B. Mathe, Englisch).  
+* **Action:** Das Kind wählt ein Fach und tippt auf eine Uhrzeit (z. B. 15:00 Uhr).  
+* **Oder:** Das Kind zieht einen **Joker** 🏖️ (1x pro Woche) und hat heute frei.
 
-docker run -d --name lernplan-reminder-bot-v2 --restart unless-stopped \
-  --env-file .env \
-  -v $(pwd)/data:/app/data \
-  lernplan-reminder-bot-v2
-```
+### **2️⃣ Der gewählte Zeitpunkt – Die Umsetzung**
 
-Alternativ:
-```bash
-docker compose up -d --build
-```
+Zur gewählten Zeit (z. B. 15:00 Uhr) meldet sich der Bot: *"🔔 Zeit für Mathe, wie besprochen\!"*
 
-## Unraid-Deployment
+* Das Kind lernt.  
+* **Action:** Statt langweiliger Checkboxen schickt das Kind einfach eine **Sprachnachricht** an den Bot: *"Habe 20 Minuten Brüche geübt."*  
+* **Feature:** Der Bot leitet diese Nachricht **sofort an die Eltern weiter**. Papa/Mama wissen Bescheid, ohne nachgefragt zu haben.
 
-1. AppData-Verzeichnis anlegen:
-   ```bash
-   mkdir -p /mnt/user/appdata/LernplanReminderBot_v2/data
-   ```
-2. `.env` mit Token und Chat-IDs füllen.
-3. Container starten (GHCR oder lokal gebaut):
-   ```bash
-docker run -d \
-  --name lernplan-reminder-bot-v2 \
-  --restart unless-stopped \
-  --env-file /mnt/user/appdata/LernplanReminderBot_v2/.env \
-  -v /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data \
-  ghcr.io/portboy/lernplan-reminder-bot-v2:latest
-```
+### **3️⃣ 20:00 Uhr – Der Check-in**
 
-Weitere Deployment-Varianten (lokale Builds, `docker-compose.prod.yml` usw.) stehen in der **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+Der Tagesabschluss. *"Hast du heute alles geschafft?"*
 
-## Environment-Variablen
+* **Action:** Ja ✅ / Nein ❌.  
+* **Belohnung:** Bei Erfolg gibt es ein motivierendes Bild (z. B. Pferde, Katzen, Memes).  
+* **Kein Druck:** Bei "Nein" gibt es kein Schimpfen, sondern ein aufmunterndes GIF.
 
-| Variable | Bedeutung |
-|----------|-----------|
-| `TELEGRAM_TOKEN` | Token vom BotFather |
-| `LOG_LEVEL` | z. B. INFO oder DEBUG |
-| `DATA_DIR` | Verzeichnis für JSON-Dateien (Standard: `data`) |
-| `PARENT_CHAT_ID` | Eltern-/Betreuer-Chat-ID |
-| `STUDENT_CHAT_ID` | Schüler-Chat-ID |
+## **✨ Features im Überblick**
 
-> Frühere Konfigurationen nutzten `CHILD_CHAT_ID`; der neue Name `STUDENT_CHAT_ID` ist in Code und Doku fest verankert.
+### **👶 Für das Kind (Student)**
 
-## Datenstruktur
+* **Volle Kontrolle:** "Ich bestimme, wann ich lerne."  
+* **Joker-System:** Einmal pro Woche "frei" machen dürfen (wird Montags automatisch aufgefüllt).  
+* **Voice-First:** Erledigungen einfach per Sprachnachricht melden.  
+* **Kein Spam:** Der Bot nervt nicht, wenn man den Joker nutzt.
 
-JSON-Dateien liegen unter `data/user_<chat_id>.json` und enthalten u. a. `chat_id`, `reminder_times` und `week_plan`.
+### **👨‍👩‍👧 Für die Eltern (Parent)**
 
-```json
-{
-  "chat_id": 123456,
-  "reminder_times": ["08:00", "18:30"],
-  "week_plan": {
-    "montag": {"subject": "Mathe", "minutes": 30},
-    "dienstag": {"subject": "Englisch", "minutes": 30}
-  }
-}
-```
+* **Entspannung:** Du musst nicht mehr drängeln. Der Bot übernimmt die Struktur.  
+* **Transparenz:** Du bekommst die Sprachnachrichten ("Habe Vokabeln gelernt") direkt weitergeleitet.  
+* **Tagesreport:** Um 20:00 Uhr erhältst du eine Zusammenfassung: Was war geplant? Was wurde erledigt?  
+* **Admin-Menü:** Über einen eigenen Menü-Button kannst du den groben Wochenplan ("Montags ist eigentlich Mathe") vordefinieren.
 
-## Funktionsbeschreibung
+## **🛠️ Technische Installation & Deployment**
 
-- **Anmeldung & Shared State:** Nach `/start` legen sowohl Eltern als auch Schüler einen eigenen `user_<chat_id>.json`-Datensatz an. Sind beide Chat-IDs im `.env` konfiguriert, arbeiten beide Nutzer mit denselben Erinnerungszeiten und Wochenplänen; Änderungen an einem Account werden sofort für den anderen sichtbar.
-- **Menüführung:** Der persistente Menü-Button (📋) öffnet eine Reply-Tastatur; Inline-Menüs führen durch `Zeiten verwalten`, `Wochenplan bearbeiten`, `Wochenübersicht` und `Schließen`. Jedes Inline-Keyboard kommuniziert per Callback Queries zurück an `handle_callback` und aktualisiert die Nachricht dynamisch.
-- **Reminder-Persistenz:** `reminder_times` werden als Liste (max. 3 Einträge) pro Nutzer gespeichert. Diese Zeiten sind leitend für die `daily_check`-Jobs, die den Tagessatz um 20:00 mit Fragen wie „Warst du heute produktiv?“ versenden und auf Eltern- und Schülerseite dieselbe Erinnerung anzeigen.
-- **Wochenplan & Übersicht:** Nutzer können pro Tag (`montag`–`sonntag`) ein Fach, eine Lernzeit und Minuten hinzufügen. Die Wochenübersicht rendert eine tabellarische Darstellung mit farbigen Emojis, Gesamtminuten und ausgeschriebenen Reminder- und Feedback-Zuständen.
-- **Jobs & Scheduler:** `apscheduler` kümmert sich um den täglichen `daily_check` (20:00 Uhr UTC+1 Berlin) und eventuelle zusätzliche Test-Reminders. Der Job wird beim Start von `schedule_all_reminders` registriert und durch die JobStore-Instanz von `JobQueue` ausgeführt.
-- **Fehlermeldungen & Logging:** Alle Telegram-Antworten und Scheduler-Ereignisse landen in der konsistenten Logging-Konfiguration (`core/logging_config.py`). Exceptions fangen die Handler auf, sodass der Bot selbst bei API-Fehlern (`BadRequest`, abgelaufene Callback-Queries) weiterläuft.
+Der Bot ist als **Docker-Container** konzipiert und läuft perfekt auf einem Home-Server (z. B. Unraid, Raspberry Pi, Synology).
 
-## Tests
+### **Voraussetzungen**
 
-```bash
-pytest -q
-```
+1. Ein **Telegram Bot Token** (von [@BotFather](https://t.me/BotFather)).  
+2. Zwei Telegram-Accounts (Kind & Elternteil).  
+3. Docker & Docker Compose.
 
-## Chat-IDs ermitteln
+### **Option A: Schnellstart (Docker Compose)**
 
-Sobald Eltern und Schüler jeweils `/start` senden, erscheinen Dateien wie `data/user_193788187.json`. Die IDs daraus in `.env` eintragen und den Bot neu starten.
+Erstelle eine Datei docker-compose.yml und eine .env Datei im selben Ordner.
 
-## Geteilte Funktionalität
+**.env Datei:**
 
-Wenn sowohl `PARENT_CHAT_ID` als auch `STUDENT_CHAT_ID` gesetzt sind, teilen sich beide Nutzer:
-- **Wochenplan**: Änderungen sind für beide sofort sichtbar.
-- **Erinnerungszeiten**: Identische Zeiten werden synchron übernommen.
-- **Wochenübersicht**: Betragene Daten zeigen stets den gemeinsamen Lernplan.
+TELEGRAM\_TOKEN=dein\_token\_hier  
+STUDENT\_CHAT\_ID=123456789  
+PARENT\_CHAT\_ID=987654321  
+TIMEZONE=Europe/Berlin  
+DATA\_DIR=data  
+LOG\_LEVEL=INFO
 
-## Sicherheitshinweis
+**docker-compose.yml:**
 
-`.env` liegt im `.gitignore` und darf nicht veröffentlicht werden. Bei Kompromittierung: BotFather `/revoke` & neuen Token erzeugen.
+version: "3.9"  
+services:  
+  lernplan-bot:  
+    image: ghcr.io/portboy/lernplan-reminder-bot-v2:latest  
+    container\_name: lernplan-bot  
+    restart: unless-stopped  
+    env\_file: .env  
+    volumes:  
+      \- ./data:/app/data
 
-## Lizenz
+Starten:
 
-MIT
+docker compose up \-d
+
+### **Option B: Unraid Server (Detailliert)**
+
+Der Bot speichert seinen Status (Joker, Pläne) in JSON-Dateien. Diese müssen persistent sein.
+
+1. **Verzeichnisse erstellen:**  
+   Öffne das Unraid Terminal:  
+   mkdir \-p /mnt/user/appdata/LernplanReminderBot/data
+
+2. **Konfiguration anlegen:**  
+   Erstelle die Datei /mnt/user/appdata/LernplanReminderBot/.env (siehe oben für Inhalt).  
+3. **Container starten (per Terminal oder Docker Compose Plugin):**  
+   Wenn du das "Docker Compose Manager" Plugin nutzt, kopiere den Inhalt von Option A dort hinein.  
+   Pfade anpassen:  
+   * Host Pfad: /mnt/user/appdata/LernplanReminderBot/data  
+   * Container Pfad: /app/data
+
+## **⚙️ Konfiguration & IDs herausfinden**
+
+### **1\. Chat IDs ermitteln**
+
+Damit der Bot weiß, wer Kind und wer Elternteil ist:
+
+1. Sende mit dem Handy des **Kindes** /start an den Bot.  
+2. Sende mit dem Handy des **Elternteils** /start an den Bot.  
+3. Schau in die Logs:  
+   docker logs lernplan-bot
+
+   Dort siehst du Einträge wie User 123456789 started bot.  
+4. Trage diese IDs in deine .env Datei ein und starte den Container neu (docker compose restart).
+
+### **2\. Environment Variablen (Referenz)**
+
+| Variable | Pflicht? | Beschreibung |
+| :---- | :---- | :---- |
+| TELEGRAM\_TOKEN | ✅ Ja | Der API Token vom BotFather. |
+| STUDENT\_CHAT\_ID | ✅ Ja | ID des Kindes. Ohne diese ID funktioniert der Bot nicht korrekt (kein Check-in). |
+| PARENT\_CHAT\_ID | ❌ Nein | ID der Eltern. Wenn gesetzt, werden Sprachnachrichten und Reports hierhin gesendet. |
+| DATA\_DIR | ❌ Nein | Ordner für JSON-Daten (Default: data). |
+| LOG\_LEVEL | ❌ Nein | INFO (Standard) oder DEBUG für Fehlersuche. |
+
+## **🐛 Troubleshooting & FAQ**
+
+### **Häufige Probleme**
+
+| Symptom | Ursache | Lösung |
+| :---- | :---- | :---- |
+| **Bot antwortet gar nicht** | Falscher Token oder Container läuft nicht. | Prüfe docker logs lernplan-bot auf Fehler. Prüfe Token in .env. |
+| **20-Uhr Frage fehlt** | STUDENT\_CHAT\_ID falsch oder nicht gesetzt. | ID in .env prüfen. Bot muss *vor* 20:00 Uhr laufen. |
+| **Keine Eltern-Info** | PARENT\_CHAT\_ID nicht gesetzt. | In .env ergänzen und neu starten. |
+| **Daten (Joker) weg nach Neustart** | Volume nicht korrekt gemountet. | Prüfe in docker-compose.yml, ob ./data:/app/data korrekt ist. |
+| **"Zeiten verwalten" Menü noch da** | Alte Version läuft noch. | Führe docker compose pull aus, um das Update zu laden. |
+
+### **Updates einspielen**
+
+Um die neueste Version zu erhalten (z. B. Bugfixes):
+
+**Manuell:**
+
+docker compose pull  
+docker compose up \-d
+
+**Automatisch (Watchtower):**
+
+Wenn du Watchtower auf deinem Unraid/Server nutzt, wird der Bot automatisch aktualisiert, sobald ein neues Image auf GitHub verfügbar ist.
+
+### **Backup**
+
+Alle Daten liegen im data/ Ordner als .json Dateien.
+
+* **Backup:** Kopiere einfach den Ordner /mnt/user/appdata/LernplanReminderBot/data.  
+* **Restore:** Kopiere die Dateien zurück und starte den Container neu.
+
+## **🤖 Tech Stack**
+
+* **Sprache:** Python 3.11+  
+* **Framework:** python-telegram-bot (Async)  
+* **Scheduling:** APScheduler (für dynamische Jobs und Cron-Logik)  
+* **Datenbank:** Einfache JSON-Files (keine externe DB nötig, leicht zu sichern)  
+* **Container:** Docker (Multi-Arch: amd64/arm64)
+
+## **📄 Lizenz**
+
+MIT License \- Fühlt euch frei, den Bot für eure Familie anzupassen\!
