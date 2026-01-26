@@ -35,8 +35,6 @@ docker compose -f docker-compose.prod.yml logs -f
 
 ### Option 3: Unraid Server (empfohlen)
 
-**Pfade auf Unraid:**
-
 **Setup-Schritte:**
 
 1. **Verzeichnisse erstellen**
@@ -127,8 +125,6 @@ docker image prune -f
 cd /mnt/user/appdata/LernplanReminderBot_v2
 docker compose pull
 docker compose up -d
-docker compose build --no-cache
-docker compose up -d
 ```
 
 ## 📊 Monitoring
@@ -158,8 +154,8 @@ ls -la ./data/
 **Schneller Neustart**
 ```bash
 docker compose restart lernplan-reminder-bot-v2
+# oder mit neuem Build:
 docker compose down
-docker compose up -d
 docker compose build --no-cache
 docker compose up -d
 ```
