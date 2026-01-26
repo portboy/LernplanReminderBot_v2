@@ -77,28 +77,34 @@ Erstelle eine Datei docker-compose.yml und eine .env Datei im selben Ordner.
 
 **.env Datei:**
 
-TELEGRAM\_TOKEN=dein\_token\_hier  
-STUDENT\_CHAT\_ID=123456789  
-PARENT\_CHAT\_ID=987654321  
-TIMEZONE=Europe/Berlin  
-DATA\_DIR=data  
-LOG\_LEVEL=INFO
+```env
+TELEGRAM_TOKEN=dein_token_hier
+STUDENT_CHAT_ID=123456789
+PARENT_CHAT_ID=987654321
+TIMEZONE=Europe/Berlin
+DATA_DIR=data
+LOG_LEVEL=INFO
+```
 
 **docker-compose.yml:**
 
-version: "3.9"  
-services:  
-  lernplan-bot:  
-    image: ghcr.io/portboy/lernplan-reminder-bot-v2:latest  
-    container\_name: lernplan-bot  
-    restart: unless-stopped  
-    env\_file: .env  
-    volumes:  
-      \- ./data:/app/data
+```yaml
+version: "3.9"
+services:
+  lernplan-bot:
+    image: ghcr.io/portboy/lernplan-reminder-bot-v2:latest
+    container_name: lernplan-bot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+```
 
 Starten:
 
-docker compose up \-d
+```bash
+docker compose up -d
+```
 
 ### **Option B: Unraid Server (Detailliert)**
 
@@ -106,7 +112,9 @@ Der Bot speichert seinen Status (Joker, Pläne) in JSON-Dateien. Diese müssen p
 
 1. **Verzeichnisse erstellen:**  
    Öffne das Unraid Terminal:  
-   mkdir \-p /mnt/user/appdata/LernplanReminderBot/data
+   ```bash
+   mkdir -p /mnt/user/appdata/LernplanReminderBot/data
+   ```
 
 2. **Konfiguration anlegen:**  
    Erstelle die Datei /mnt/user/appdata/LernplanReminderBot/.env (siehe oben für Inhalt).  
@@ -125,7 +133,9 @@ Damit der Bot weiß, wer Kind und wer Elternteil ist:
 1. Sende mit dem Handy des **Kindes** /start an den Bot.  
 2. Sende mit dem Handy des **Elternteils** /start an den Bot.  
 3. Schau in die Logs:  
+   ```bash
    docker logs lernplan-bot
+   ```
 
    Dort siehst du Einträge wie User 123456789 started bot.  
 4. Trage diese IDs in deine .env Datei ein und starte den Container neu (docker compose restart).
@@ -158,8 +168,10 @@ Um die neueste Version zu erhalten (z. B. Bugfixes):
 
 **Manuell:**
 
-docker compose pull  
-docker compose up \-d
+```bash
+docker compose pull
+docker compose up -d
+```
 
 **Automatisch (Watchtower):**
 
