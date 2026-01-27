@@ -46,8 +46,8 @@ def init_globals(cfg: BotConfig) -> None:
     # Setup data directory
     data_dir = Path(config.data_dir)
     if not data_dir.is_absolute():
-        repo_root = Path(__file__).resolve().parents[2]
-        data_dir = repo_root / data_dir
+        # If relative path, use current working directory (not package location)
+        data_dir = Path.cwd() / data_dir
     data_dir.mkdir(parents=True, exist_ok=True)
     
     repo = SettingsRepository(data_dir)

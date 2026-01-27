@@ -29,8 +29,8 @@ class BotConfig(BaseModel):
     parent_chat_id: int | None = None
     timezone: str = "Europe/Berlin"
     log_level: str = "INFO"
-    data_dir: str = "data"
-    config_dir: str = "userconfig"
+    data_dir: str = "/app/data"
+    config_dir: str = "/app/userconfig"
     
     # Configurable subjects
     allowed_subjects: list[SubjectConfig] = Field(

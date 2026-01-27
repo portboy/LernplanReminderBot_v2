@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   lernplan-reminder-bot-v2:
     # Image-Tag Optionen (Workflow baut: branch-<name>, sha-<hash>):
