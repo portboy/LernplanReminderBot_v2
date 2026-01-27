@@ -637,7 +637,11 @@ def schedule_all_reminders(app: Application) -> None:
 
     LOGGER.info(f"Scheduled {dynamic_count} dynamic plan reminders")
 
-    # Schedule system jobs (only once)
+    # Schedule system jobs (only once) - only if student_chat_id is configured
+    if not config.student_chat_id:
+        LOGGER.warning("Student chat ID not configured - skipping system job scheduling")
+        return
+    
     # Check if already scheduled
     has_morning = any(
         job.name == "morning_planning_prompt" for job in app.job_queue.jobs()
@@ -742,7 +746,9 @@ def main() -> None:
 
     # Validate configuration
     if not config.student_chat_id:
-        LOGGER.warning("⚠️  STUDENT_CHAT_ID is not set - daily check will not work!")
+        LOGGER.error("❌ STUDENT_CHAT_ID is not set in bot_config.json or environment!")
+        LOGGER.error("Please set student_chat_id in userconfig/bot_config.json or STUDENT_CHAT_ID environment variable.")
+        raise ValueError("STUDENT_CHAT_ID is required for bot operation")
     if not config.parent_chat_id:
         LOGGER.warning("⚠️  PARENT_CHAT_ID is not set - parent notifications will not work!")
 
