@@ -36,7 +36,7 @@ jobs:
         run: |
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
           BRANCH_NAME_LOWER=$(echo "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]')
-          BRANCH_NAME_SANITIZED=$(echo "$BRANCH_NAME_LOWER" | sed 's/[^a-z0-9._-]/-/g')
+          BRANCH_NAME_SANITIZED=$(echo "$BRANCH_NAME_LOWER" | sed 's/[^a-z0-9-]/-/g')
           echo "name=$BRANCH_NAME_SANITIZED" >> $GITHUB_OUTPUT
 
       - name: Prepare commit SHA (short)
