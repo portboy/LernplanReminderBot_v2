@@ -1,12 +1,12 @@
 version: "3.9"
 services:
   lernplan-reminder-bot-v2:
-    # Image-Tag Optionen:
-    # - :latest        → main Branch (stabil)
-    # - :main          → main Branch (stabil)
-    # - :develop       → develop Branch (neueste Features)
-    # - :<branch-name> → Spezifischer Branch
-    image: ghcr.io/portboy/lernplan-reminder-bot-v2:latest
+    # Image-Tag Optionen (Workflow baut: branch-<name>, sha-<hash>):
+    # - branch-main (stabil, production)
+    # - branch-develop (neueste Features, testing)
+    # - branch-<name> (feature branches)
+    # - sha-<hash> (spezifischer Commit)
+    image: ghcr.io/portboy/lernplanreminderbot_v2:branch-main
     container_name: lernplan-reminder-bot-v2
     restart: unless-stopped
     
@@ -62,7 +62,7 @@ services:
 #    - telegram_token
 #    - student_chat_id
 #    - parent_chat_id
-#    - allowed_subjects (optional, für eigene Fächer)
+#    - allowed_subjects (optional, fuer eigene Faecher)
 
 # 3. Alternative: .env Datei (überschreibt bot_config.json):
 #    Erstelle /mnt/user/appdata/LernplanReminderBot_v2/.env:
@@ -75,7 +75,7 @@ services:
 # 4. Start:
 #    docker compose -f docker-compose.ghcr.yml up -d
 
-# 5. Konfiguration ändern (OHNE Neudeployment!):
+# 5. Konfiguration aendern (OHNE Neudeployment!):
 #    - Editiere /mnt/user/appdata/.../userconfig/bot_config.json
 #    - Restart: docker restart lernplan-reminder-bot-v2
 #    - Fertig! (Dauert ~5 Sekunden)
@@ -85,14 +85,14 @@ services:
 #    docker compose -f docker-compose.ghcr.yml up -d
 #
 #    Oder spezifischen Branch verwenden:
-#    Editiere Zeile 10 und ändere :latest zu :develop
+#    Editiere Zeile 9 und aendere branch-main zu branch-develop
 #    docker compose -f docker-compose.ghcr.yml pull
 #    docker compose -f docker-compose.ghcr.yml up -d
 
 # 7. Logs ansehen:
 #    docker logs -f lernplan-reminder-bot-v2
 
-# 8. Fächer zur Laufzeit hinzufügen:
-#    Editiere userconfig/bot_config.json und füge hinzu:
+# 8. Faecher zur Laufzeit hinzufuegen:
+#    Editiere userconfig/bot_config.json und fuege hinzu:
 #    {"name": "Geschichte", "emoji": "📜", "color": "#AA96DA"}
 #    Dann: docker restart lernplan-reminder-bot-v2
