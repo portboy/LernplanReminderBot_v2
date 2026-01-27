@@ -70,10 +70,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message:
         return
     chat_id = update.effective_chat.id
+    user = update.effective_user
+    LOGGER.info(f"🆕 /start command from chat_id={chat_id}, user={user.first_name} (@{user.username})")
+    LOGGER.info(f"📋 Configured student_chat_id={config.student_chat_id}, parent_chat_id={config.parent_chat_id}")
+    
     repo.load(chat_id)  # Initialize user settings
     await update.message.reply_text(
-        "Willkommen beim Lernplan Reminder Bot! Nutze den Menü-Button oder /menu.",
+        f"Willkommen beim Lernplan Reminder Bot! 👋\n\n"
+        f"Deine Chat-ID: `{chat_id}`\n"
+        f"Nutze den Menü-Button oder /menu.",
         reply_markup=keyboard_builder.get_main_keyboard(),
+        parse_mode="Markdown",
     )
 
 
@@ -738,8 +745,8 @@ def main() -> None:
     LOGGER.info("=" * 60)
     LOGGER.info("Lernplan Reminder Bot v2 Starting")
     LOGGER.info("=" * 60)
-    LOGGER.info(f"Student Chat ID: {config.student_chat_id}")
-    LOGGER.info(f"Parent Chat ID: {config.parent_chat_id}")
+    LOGGER.info(f"Student Chat ID: {config.student_chat_id} (Type: {type(config.student_chat_id).__name__})")
+    LOGGER.info(f"Parent Chat ID: {config.parent_chat_id} (Type: {type(config.parent_chat_id).__name__})")
     LOGGER.info(f"Timezone: {config.timezone}")
     LOGGER.info(f"Allowed Subjects: {', '.join(config.get_subject_names())}")
     LOGGER.info("=" * 60)
