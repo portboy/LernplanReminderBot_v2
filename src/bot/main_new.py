@@ -181,11 +181,18 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             overview_text = message_builder.build_weekly_overview(
                 summary["week_plan"], summary["reminder_times"]
             )
-            await query.edit_message_text(
-                overview_text,
-                reply_markup=keyboard_builder.build_overview_menu(summary["week_plan"]),
-                parse_mode="Markdown",
-            )
+            try:
+                await query.edit_message_text(
+                    overview_text,
+                    reply_markup=keyboard_builder.build_overview_menu(summary["week_plan"]),
+                    parse_mode="Markdown",
+                )
+            except Exception as e:
+                if "Message is not modified" in str(e):
+                    # User clicked same button twice - just answer without error
+                    pass
+                else:
+                    raise
             await query.answer()
             return
 
