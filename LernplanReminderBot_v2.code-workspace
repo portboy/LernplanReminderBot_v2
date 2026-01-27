@@ -17,6 +17,19 @@
 			"/^cd /mnt/user/code-projects/LernplanReminderBot_v2 && python - <<'PY'\nfrom pathlib import Path\nlines = Path\\('src/bot/main\\.py'\\)\\.read_text\\(\\)\\.splitlines\\(\\)\nfor i in range\\(755, 770\\):\n    if i < len\\(lines\\):\n        print\\(f\"\\{i\\+1:04d\\}: \\{lines\\[i\\]\\}\"\\)\nPY$/": {
 				"approve": true,
 				"matchCommandLine": true
+			},
+			"/^cd /mnt/user/code-projects/LernplanReminderBot_v2 && python3 scripts/migrate_v2\\.py$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"/^cd /mnt/user/code-projects/LernplanReminderBot_v2 && python3 -c \"from core\\.config import load_config; config = load_config\\(\\); print\\(f'✅ Config OK: \\{len\\(config\\.allowed_subjects\\)\\} subjects, timezone=\\{config\\.timezone\\}'\\)\"$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"pip": true,
+			"/^cd /mnt/user/code-projects/LernplanReminderBot_v2 && python3 -c \"from core\\.config import load_config; config = load_config\\(\\); print\\(f'Config OK: \\{len\\(config\\.allowed_subjects\\)\\} subjects'\\)\"$/": {
+				"approve": true,
+				"matchCommandLine": true
 			}
 		}
 	}

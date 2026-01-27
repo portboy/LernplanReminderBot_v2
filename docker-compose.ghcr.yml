@@ -4,14 +4,36 @@ services:
     image: ghcr.io/portboy/lernplan-reminder-bot-v2:latest
     container_name: lernplan-reminder-bot-v2
     restart: unless-stopped
-    # Pfad zur .env Datei auf dem Unraid Host (vorher anlegen und Variablen setzen)
+    
+    # Pfad zur .env Datei auf dem Unraid Host (optional, überschreibt bot_config.json)
     env_file: /mnt/user/appdata/LernplanReminderBot_v2/.env
+    
+    # Volumes für persistente Daten und Konfiguration
     volumes:
       - /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data
+      - /mnt/user/appdata/LernplanReminderBot_v2/userconfig:/app/userconfig
+    
+    # Health Check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
     # Keine Ports nötig – Bot stellt ausgehende Verbindungen zu Telegram her
+    
     # Optional: Labels, falls du Watchtower oder ähnliches nutzt
     # labels:
     #   - "com.centurylinklabs.watchtower.enable=true"
+    
     # Optional: Ressourcenlimits (anpassen wenn gewünscht)
     # deploy:
     #   resources:
@@ -19,19 +41,48 @@ services:
     #       cpus: '0.50'
     #       memory: 256M
 
-# Hinweise:
-# 1. .env Beispiel (auf Unraid unter /mnt/user/appdata/LernplanReminderBot_v2/.env):
-#    TELEGRAM_TOKEN=123456:ABC....
-#    LOG_LEVEL=INFO
-#    DATA_DIR=data
-#    PARENT_CHAT_ID=123456789
-#    STUDENT_CHAT_ID=987654321
-# 2. Ordner anlegen:
+# ============================================================================
+# Hinweise für Unraid/Production Deployment
+# ============================================================================
+
+# 1. Ordner anlegen:
 #    mkdir -p /mnt/user/appdata/LernplanReminderBot_v2/data
-# 3. Start:
+#    mkdir -p /mnt/user/appdata/LernplanReminderBot_v2/userconfig
+
+# 2. Konfiguration erstellen (EMPFOHLEN):
+#    Kopiere userconfig/bot_config.json nach:
+#    /mnt/user/appdata/LernplanReminderBot_v2/userconfig/bot_config.json
+#    
+#    Editiere die Datei und setze:
+#    - telegram_token
+#    - student_chat_id
+#    - parent_chat_id
+#    - allowed_subjects (optional, für eigene Fächer)
+
+# 3. Alternative: .env Datei (überschreibt bot_config.json):
+#    Erstelle /mnt/user/appdata/LernplanReminderBot_v2/.env:
+#    TELEGRAM_TOKEN=123456:ABC....
+#    STUDENT_CHAT_ID=123456789
+#    PARENT_CHAT_ID=987654321
+#    LOG_LEVEL=INFO
+#    TIMEZONE=Europe/Berlin
+
+# 4. Start:
 #    docker compose -f docker-compose.ghcr.yml up -d
-# 4. Update auf neuestes Image:
-#    docker compose -f docker-compose.ghcr.yml pull && \
+
+# 5. Konfiguration ändern (OHNE Neudeployment!):
+#    - Editiere /mnt/user/appdata/.../userconfig/bot_config.json
+#    - Restart: docker restart lernplan-reminder-bot-v2
+#    - Fertig! (Dauert ~5 Sekunden)
+
+# 6. Update auf neuestes Image:
+#    docker compose -f docker-compose.ghcr.yml pull
 #    docker compose -f docker-compose.ghcr.yml up -d
-# 5. Logs ansehen:
+
+# 7. Logs ansehen:
 #    docker logs -f lernplan-reminder-bot-v2
+
+# 8. Fächer zur Laufzeit hinzufügen:
+#    Editiere userconfig/bot_config.json und füge hinzu:
+#    {"name": "Geschichte", "emoji": "📜", "color": "#AA96DA"}
+#    Dann: docker restart lernplan-reminder-bot-v2

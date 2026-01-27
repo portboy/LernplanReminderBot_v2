@@ -6,30 +6,31 @@ services:
     container_name: lernplan-reminder-bot-v2
     restart: unless-stopped
     
-    # Umgebungsvariablen aus Datei laden
+    # Umgebungsvariablen aus Datei laden (optional, überschreibt bot_config.json)
     # Pfad anpassen für Ihr System
     env_file: .env
     
-    # Daten persistent speichern
+    # Daten und Konfiguration persistent speichern
     volumes:
       - ./data:/app/data
+      - ./userconfig:/app/userconfig
     
     # Keine Ports nötig - Bot nutzt ausgehende Verbindungen zu Telegram
     
-    # Optional: Logging-Konfiguration
+    # Health Check (aktiviert)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Logging-Konfiguration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    
-    # Optional: Health Check
-    # healthcheck:
-    #   test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 40s
     
     # Optional: Ressourcenlimits
     # deploy:
@@ -44,3 +45,31 @@ services:
     # Optional: Watchtower Auto-Update
     # labels:
     #   - "com.centurylinklabs.watchtower.enable=true"
+
+# ============================================================================
+# Schnellstart für Production:
+# ============================================================================
+# 1. Verzeichnisse erstellen:
+#    mkdir -p data userconfig
+#
+# 2. Konfiguration erstellen:
+#    Kopiere userconfig/bot_config.json (aus Repository) nach ./userconfig/
+#    Editiere die Datei und setze deine Werte:
+#    - telegram_token
+#    - student_chat_id
+#    - parent_chat_id
+#
+# 3. Starten:
+#    docker compose -f docker-compose.prod.yml up -d
+#
+# 4. Konfiguration zur Laufzeit ändern:
+#    Editiere: ./userconfig/bot_config.json
+#    Neustart: docker compose -f docker-compose.prod.yml restart
+#    (Dauert nur ~5 Sekunden, kein Rebuild nötig!)
+#
+# 5. Logs:
+#    docker compose -f docker-compose.prod.yml logs -f
+#
+# 6. Updates:
+#    docker compose -f docker-compose.prod.yml pull
+#    docker compose -f docker-compose.prod.yml up -d
