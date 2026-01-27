@@ -9,9 +9,6 @@ services:
     container_name: lernplan-reminder-bot-v2
     restart: unless-stopped
     
-    # Pfad zur .env Datei auf dem Unraid Host (optional, überschreibt bot_config.json)
-    env_file: /mnt/user/appdata/LernplanReminderBot_v2/.env
-    
     # Volumes für persistente Daten und Konfiguration
     volumes:
       - /mnt/user/appdata/LernplanReminderBot_v2/data:/app/data

@@ -9,10 +9,6 @@ services:
     container_name: lernplan-reminder-bot-v2
     restart: unless-stopped
     
-    # Umgebungsvariablen aus Datei laden (optional, überschreibt bot_config.json)
-    # Pfad anpassen für Ihr System
-    env_file: .env
-    
     # Daten und Konfiguration persistent speichern
     volumes:
       - ./data:/app/data
