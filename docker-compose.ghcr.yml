@@ -1,6 +1,11 @@
 version: "3.9"
 services:
   lernplan-reminder-bot-v2:
+    # Image-Tag Optionen:
+    # - :latest        → main Branch (stabil)
+    # - :main          → main Branch (stabil)
+    # - :develop       → develop Branch (neueste Features)
+    # - :<branch-name> → Spezifischer Branch
     image: ghcr.io/portboy/lernplan-reminder-bot-v2:latest
     container_name: lernplan-reminder-bot-v2
     restart: unless-stopped
@@ -76,6 +81,11 @@ services:
 #    - Fertig! (Dauert ~5 Sekunden)
 
 # 6. Update auf neuestes Image:
+#    docker compose -f docker-compose.ghcr.yml pull
+#    docker compose -f docker-compose.ghcr.yml up -d
+#
+#    Oder spezifischen Branch verwenden:
+#    Editiere Zeile 10 und ändere :latest zu :develop
 #    docker compose -f docker-compose.ghcr.yml pull
 #    docker compose -f docker-compose.ghcr.yml up -d
 

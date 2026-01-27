@@ -19,17 +19,37 @@ docker compose down
 ```
 
 ### Option 2: Produktion über docker-compose.prod.yml
+
+**Image-Tags:** Für jeden Branch wird automatisch ein Image gebaut:
+- `:latest` oder `:main` → Stable (Production)
+- `:develop` → Testing (neueste Features)
+- `:<branch-name>` → Spezifischer Feature-Branch
+
 ```bash
 cp .env.example .env
 # Werte eintragen
 
+# Standard (main/latest):
+docker compose -f docker-compose.prod.yml up -d
+
+# Oder develop Branch:
+# Editiere docker-compose.prod.yml, ändere :latest zu :develop
 docker compose -f docker-compose.prod.yml up -d
 ```
 
 Updates:
 ```bash
+# Latest Version (main):
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
+
+# Wechsel zwischen Branches:
+# 1. Editiere docker-compose.prod.yml (Zeile "image:")
+# 2. Ändere Tag von :latest zu :develop (oder anderen Branch)
+# 3. Pull & Restart:
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+
 docker compose -f docker-compose.prod.yml logs -f
 ```
 

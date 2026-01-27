@@ -110,17 +110,27 @@ TIMEZONE=Europe/Berlin
 LOG_LEVEL=DEBUG
 ```
 
-### Schritt 3: Container neu bauen
+### Schritt 3: Container starten
+
+**Image-Tags:** Für jeden Branch wird automatisch ein Image gebaut:
+- `:latest` / `:main` → Stable Production Release
+- `:develop` → Testing Branch mit neuesten Features
+- `:<branch-name>` → Spezifischer Feature-Branch
 
 ```bash
-# Alte Container stoppen
+# Option 1: Lokaler Build
 docker-compose down
-
-# Neu bauen
 docker-compose build
-
-# Starten
 docker-compose up -d
+
+# Option 2: GHCR Image (empfohlen)
+# Standard (main/latest):
+docker compose -f docker-compose.ghcr.yml up -d
+
+# Oder develop Branch:
+# Editiere docker-compose.ghcr.yml, ändere :latest zu :develop
+docker compose -f docker-compose.ghcr.yml pull
+docker compose -f docker-compose.ghcr.yml up -d
 ```
 
 ### Schritt 4: Migration alter Daten

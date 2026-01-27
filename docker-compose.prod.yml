@@ -2,6 +2,11 @@ version: "3.9"
 
 services:
   lernplan-reminder-bot-v2:
+    # Image-Tag Optionen (für jeden Branch wird automatisch ein Image gebaut):
+    # - :latest        → main Branch (Production-ready, stabil)
+    # - :main          → main Branch (identisch mit latest)
+    # - :develop       → develop Branch (neueste Features, Testing)
+    # - :<branch-name> → Spezifischer Feature-Branch
     image: ghcr.io/portboy/lernplan-reminder-bot-v2:latest
     container_name: lernplan-reminder-bot-v2
     restart: unless-stopped
@@ -71,5 +76,16 @@ services:
 #    docker compose -f docker-compose.prod.yml logs -f
 #
 # 6. Updates:
-#    docker compose -f docker-compose.prod.yml pull
-#    docker compose -f docker-compose.prod.yml up -d
+#    Production (main/latest):
+#      docker compose -f docker-compose.prod.yml pull
+#      docker compose -f docker-compose.prod.yml up -d
+#
+#    Testing (develop Branch):
+#      Ändere in Zeile 10: :latest → :develop
+#      docker compose -f docker-compose.prod.yml pull
+#      docker compose -f docker-compose.prod.yml up -d
+#
+#    Spezifischer Branch:
+#      Ändere in Zeile 10: :latest → :feature-branch-name
+#      docker compose -f docker-compose.prod.yml pull
+#      docker compose -f docker-compose.prod.yml up -d
