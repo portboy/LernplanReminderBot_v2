@@ -25,7 +25,8 @@ class KeyboardBuilder:
         kb = [
             [InlineKeyboardButton("📅 Wochenplan bearbeiten", callback_data="menu_plan")],
             [InlineKeyboardButton("📊 Wochenübersicht", callback_data="menu_overview")],
-            [InlineKeyboardButton("🔄 Schließen", callback_data="menu_close")],
+            [InlineKeyboardButton("� Heute anzeigen", callback_data="menu_today")],
+            [InlineKeyboardButton("�🔄 Schließen", callback_data="menu_close")],
         ]
         return InlineKeyboardMarkup(kb)
 

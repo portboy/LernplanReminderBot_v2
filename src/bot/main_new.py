@@ -7,7 +7,7 @@ from datetime import datetime, time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     ApplicationBuilder,
@@ -190,6 +190,25 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             except Exception as e:
                 if "Message is not modified" in str(e):
                     # User clicked same button twice - just answer without error
+                    pass
+                else:
+                    raise
+            await query.answer()
+            return
+
+        if data == "menu_today":
+            settings = repo.load(chat_id)
+            today_text = message_builder.build_today_overview(settings)
+            try:
+                await query.edit_message_text(
+                    today_text,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("⬅️ Zurück", callback_data="menu_main")]
+                    ]),
+                    parse_mode="Markdown",
+                )
+            except Exception as e:
+                if "Message is not modified" in str(e):
                     pass
                 else:
                     raise

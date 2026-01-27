@@ -87,6 +87,66 @@ class MessageBuilder:
 
         return "\n".join(lines)
 
+    def build_today_overview(self, settings: UserSettings) -> str:
+        """Build a detailed overview for today including dynamic entries."""
+        now_dt = datetime.now(self.timezone)
+        today = WEEKDAYS[now_dt.weekday()]
+        today_iso = now_dt.date().isoformat()
+        current_time = now_dt.strftime("%H:%M")
+        
+        lines = [
+            f"📌 **HEUTE: {today.upper()}**",
+            f"🕐 Aktuelle Zeit: {current_time}",
+            "",
+        ]
+        
+        # Fixed plan
+        day_plan = settings.week_plan.get(today)
+        if day_plan:
+            duration = self.format_duration(day_plan.minutes)
+            subject_config = self.config.get_subject_by_name(day_plan.subject)
+            emoji = subject_config.emoji if subject_config else "📘"
+            lines.append("📚 **Wochenplan:**")
+            lines.append(f"{emoji} {day_plan.subject} — {duration}")
+        else:
+            lines.append("📚 **Wochenplan:** Nichts geplant")
+        
+        lines.append("")
+        
+        # Dynamic entries
+        dynamic_entries = [
+            entry
+            for entry in settings.daily_dynamic_plan
+            if entry.get("date_iso") == today_iso
+        ]
+        
+        if dynamic_entries:
+            lines.append("🔔 **Erinnerungen heute:**")
+            # Sort by time
+            sorted_entries = sorted(dynamic_entries, key=lambda e: e.get("time_str", ""))
+            for entry in sorted_entries:
+                time_str = entry.get("time_str", "--:--")
+                subject = entry.get("subject", "Unbekannt")
+                completed = entry.get("completed", False)
+                
+                # Get subject emoji
+                subject_config = self.config.get_subject_by_name(subject)
+                emoji = subject_config.emoji if subject_config else "📘"
+                
+                status = "✅" if completed else "⏰"
+                lines.append(f"{status} {time_str} — {emoji} {subject}")
+        else:
+            lines.append("🔔 **Erinnerungen heute:** Keine")
+        
+        lines.append("")
+        
+        # Jokers
+        jokers = settings.jokers_used
+        jokers_left = max(0, self.config.jokers_per_week - jokers)
+        lines.append(f"🃏 Joker übrig: {jokers_left}/{self.config.jokers_per_week}")
+        
+        return "\n".join(lines)
+
     def build_weekly_overview(
         self, week_plan: dict[str, DayPlan], reminder_times: list[str]
     ) -> str:
