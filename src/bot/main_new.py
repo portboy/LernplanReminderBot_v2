@@ -161,6 +161,14 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     chat_id = query.message.chat_id
 
     try:
+        # Handle skip comment button
+        if data == "skip_comment":
+            if "awaiting_comment" in context.user_data:
+                context.user_data.pop("awaiting_comment")
+                await query.edit_message_text("Okay, kein Kommentar. Bis morgen! 🐴")
+                await query.answer()
+                return
+
         # Main menu navigation
         if data == "menu_main":
             await query.edit_message_text(
@@ -355,6 +363,16 @@ async def on_learned_response(update: Update, context: ContextTypes.DEFAULT_TYPE
             await context.bot.send_photo(chat_id=query.message.chat_id, photo=img)
             LOGGER.info(f"Sent positive response to chat {query.message.chat_id}")
 
+            # Ask for optional comment
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text="Möchtest du noch einen Kommentar hinzufügen?\n"
+                     "Du kannst eine Textnachricht oder eine Sprachnachricht senden.",
+                reply_markup=keyboard_builder.build_skip_comment_keyboard(),
+            )
+            context.user_data["awaiting_comment"] = "yes"
+            LOGGER.info(f"Awaiting comment from chat {query.message.chat_id}")
+
             if config.parent_chat_id and config.parent_chat_id != query.message.chat_id:
                 await context.bot.send_message(
                     chat_id=config.parent_chat_id, text="Antwort Schüler: JA gelernt ✅"
@@ -366,6 +384,16 @@ async def on_learned_response(update: Update, context: ContextTypes.DEFAULT_TYPE
             await query.edit_message_text("Vielleicht klappt es morgen besser. 🐴")
             await context.bot.send_animation(chat_id=query.message.chat_id, animation=gif)
             LOGGER.info(f"Sent negative response to chat {query.message.chat_id}")
+
+            # Ask for optional comment
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text="Möchtest du noch einen Kommentar hinzufügen?\n"
+                     "Du kannst eine Textnachricht oder eine Sprachnachricht senden.",
+                reply_markup=keyboard_builder.build_skip_comment_keyboard(),
+            )
+            context.user_data["awaiting_comment"] = "no"
+            LOGGER.info(f"Awaiting comment from chat {query.message.chat_id}")
 
             if config.parent_chat_id and config.parent_chat_id != query.message.chat_id:
                 await context.bot.send_message(
@@ -389,7 +417,32 @@ async def handle_free_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     
     chat_id = update.effective_chat.id
     text = (update.message.text or "").strip()
+    # Handle /skip during comment wait
+    if text == "/skip" and "awaiting_comment" in context.user_data:
+        context.user_data.pop("awaiting_comment")
+        await update.message.reply_text(
+            "Okay, kein Kommentar. Bis morgen! 🐴",
+            reply_markup=keyboard_builder.get_main_keyboard(),
+        )
+        return
 
+    # Handle comment after daily check
+    if "awaiting_comment" in context.user_data:
+        learned_status = context.user_data.pop("awaiting_comment")
+        
+        # Forward comment to parent
+        if config.parent_chat_id and config.parent_chat_id != chat_id:
+            await context.bot.send_message(
+                chat_id=config.parent_chat_id,
+                text=f"💬 Kommentar vom Schüler:\n{text}"
+            )
+            LOGGER.info(f"Forwarded text comment to parent")
+        
+        await update.message.reply_text(
+            "Danke für deinen Kommentar! Bis morgen! 🐴",
+            reply_markup=keyboard_builder.get_main_keyboard(),
+        )
+        return
     # Handle menu button
     if text == "📋 Menü":
         await update.message.reply_text(
@@ -424,7 +477,7 @@ async def handle_free_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 
 async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle voice messages from student to mark tasks as complete."""
+    """Handle voice messages from student - either as comment or to mark tasks complete."""
     message = update.message
     if not message or not message.voice:
         return
@@ -433,6 +486,32 @@ async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYP
     if chat_id != config.student_chat_id:
         return
 
+    # Handle voice comment after daily check
+    if "awaiting_comment" in context.user_data:
+        learned_status = context.user_data.pop("awaiting_comment")
+        
+        # Forward voice message to parent
+        if config.parent_chat_id and config.parent_chat_id != chat_id:
+            try:
+                await context.bot.send_message(
+                    chat_id=config.parent_chat_id,
+                    text="🎤 Sprachkommentar vom Schüler:"
+                )
+                await context.bot.send_voice(
+                    chat_id=config.parent_chat_id,
+                    voice=message.voice.file_id,
+                )
+                LOGGER.info(f"Forwarded voice comment to parent")
+            except Exception as e:
+                LOGGER.error(f"Failed to forward voice comment: {e}")
+        
+        await message.reply_text(
+            "Danke für deinen Kommentar! Bis morgen! 🐴",
+            reply_markup=keyboard_builder.get_main_keyboard(),
+        )
+        return
+
+    # Original voice message handling: mark task as complete
     settings = repo.load(chat_id)
     
     # Forward to parent

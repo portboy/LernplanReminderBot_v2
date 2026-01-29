@@ -150,7 +150,10 @@ class MessageBuilder:
     def build_weekly_overview(
         self, week_plan: dict[str, DayPlan], reminder_times: list[str]
     ) -> str:
-        """Build a professional weekly overview with formatted table."""
+        """Build a clean, mobile-friendly weekly overview."""
+        now_dt = datetime.now(self.timezone)
+        today = WEEKDAYS[now_dt.weekday()]
+        
         day_icons = {
             "montag": "🔵",
             "dienstag": "🟢",
@@ -163,51 +166,60 @@ class MessageBuilder:
 
         overview_lines: list[str] = [
             "📊 **WOCHENÜBERSICHT**",
-            "```",
-            "┌─────────────┬─────────────┬────────┐",
-            "│ Tag         │ Fach        │ Zeit   │",
-            "├─────────────┼─────────────┼────────┤",
+            "",
         ]
 
+        # Build day entries
         for weekday in WEEKDAYS:
             plan = week_plan.get(weekday)
+            day_icon = day_icons.get(weekday, "⚪")
             day_label = weekday.capitalize()
-            if plan:
-                subject = plan.subject
-                duration = self.format_duration(plan.minutes)
+            
+            # Mark today with arrow
+            if weekday == today:
+                day_indicator = "➤ "
             else:
-                subject = "---"
-                duration = "---"
-            overview_lines.append(f"│ {day_label:<11} │ {subject:<11} │ {duration:<6} │")
+                day_indicator = ""
+            
+            if plan:
+                # Get subject emoji
+                subject_config = self.config.get_subject_by_name(plan.subject)
+                subject_emoji = subject_config.emoji if subject_config else "📘"
+                duration = self.format_duration(plan.minutes)
+                
+                overview_lines.append(
+                    f"{day_indicator}{day_icon} **{day_label}**\n"
+                    f"   {subject_emoji} {plan.subject} • {duration}"
+                )
+            else:
+                overview_lines.append(
+                    f"{day_indicator}{day_icon} **{day_label}**\n"
+                    f"   — Nichts geplant"
+                )
+            overview_lines.append("")
 
-        overview_lines.extend(
-            [
-                "└─────────────┴─────────────┴────────┘",
-                "```",
-                "",
-                "📈 **ZUSAMMENFASSUNG**",
-            ]
-        )
-
+        # Summary
         planned_days = len(week_plan)
         total_minutes = sum(plan.minutes for plan in week_plan.values())
-        overview_lines.append(f"📅 Geplante Tage: {planned_days}/7")
-        overview_lines.append(f"⏱️ Gesamtzeit: {self.format_total_minutes(total_minutes)}")
-        overview_lines.append("")
-        overview_lines.append("📌 Tagesfarben:")
-        overview_lines.append(
-            " ".join(f"{day_icons.get(day, '•')} {day[:2].upper()}" for day in WEEKDAYS)
-        )
-        overview_lines.append("")
-        overview_lines.append("⏰ **ERINNERUNGSZEITEN**")
-
+        
+        overview_lines.extend([
+            "━━━━━━━━━━━━━━━━━━━━",
+            "📈 **ZUSAMMENFASSUNG**",
+            "",
+            f"📅 Geplante Tage: **{planned_days}/7**",
+            f"⏱️ Gesamtzeit: **{self.format_total_minutes(total_minutes)}**",
+        ])
+        
+        # Reminder times
         if reminder_times:
+            overview_lines.extend([
+                "",
+                "⏰ **ERINNERUNGSZEITEN**",
+            ])
             for reminder in sorted(reminder_times):
                 overview_lines.append(
-                    f"{self.reminder_time_icon(reminder)} **{reminder}**"
+                    f"{self.reminder_time_icon(reminder)} {reminder}"
                 )
-        else:
-            overview_lines.append("Keine Erinnerungszeiten")
 
         return "\n".join(overview_lines)
 
