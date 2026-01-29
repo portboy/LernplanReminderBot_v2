@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from models.settings import DayPlan, SettingsRepository, UserSettings, WEEKDAYS
@@ -159,4 +159,66 @@ class LernplanService:
             "total_minutes": total_minutes,
             "week_plan": settings.week_plan,
             "reminder_times": settings.reminder_times,
+        }
+
+    def get_weekly_statistics(self, chat_id: int, days: int = 7) -> dict[str, any]:
+        """Calculate weekly statistics from completed dynamic plan entries.
+        
+        Args:
+            chat_id: User's chat ID
+            days: Number of days to look back (default 7)
+            
+        Returns:
+            Dictionary with total_minutes and subject_minutes
+        """
+        settings = self.repo.load(chat_id)
+        
+        # Calculate date range
+        today = datetime.now(self.timezone).date()
+        start_date = today - timedelta(days=days - 1)
+        
+        # Aggregate completed entries by subject
+        subject_minutes: dict[str, int] = {}
+        total_minutes = 0
+        
+        for entry in settings.daily_dynamic_plan:
+            # Only count completed entries
+            if not entry.get("completed"):
+                continue
+                
+            # Check if entry is within date range
+            entry_date_str = entry.get("date_iso")
+            if not entry_date_str:
+                continue
+                
+            try:
+                entry_date = datetime.fromisoformat(entry_date_str).date()
+            except (ValueError, TypeError):
+                continue
+                
+            if entry_date < start_date or entry_date > today:
+                continue
+            
+            # Get subject and add to plan (we don't have duration in dynamic plan)
+            # Check if there's a week plan for this day to get duration
+            weekday = WEEKDAYS[entry_date.weekday()]
+            subject = entry.get("subject", "Unbekannt")
+            
+            # Try to get duration from week_plan
+            day_plan = settings.week_plan.get(weekday)
+            if day_plan and day_plan.subject == subject:
+                minutes = day_plan.minutes
+            else:
+                # Default estimate: 30 minutes per completed entry
+                minutes = 30
+            
+            subject_minutes[subject] = subject_minutes.get(subject, 0) + minutes
+            total_minutes += minutes
+        
+        return {
+            "total_minutes": total_minutes,
+            "subject_minutes": subject_minutes,
+            "start_date": start_date.strftime("%d.%m.%Y"),
+            "end_date": today.strftime("%d.%m.%Y"),
+            "days": days,
         }

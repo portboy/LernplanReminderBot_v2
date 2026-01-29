@@ -223,6 +223,25 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await query.answer()
             return
 
+        if data == "menu_weekly_stats":
+            stats = lernplan_service.get_weekly_statistics(chat_id, days=7)
+            stats_text = message_builder.build_weekly_statistics(stats)
+            try:
+                await query.edit_message_text(
+                    stats_text,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("⬅️ Zurück", callback_data="menu_main")]
+                    ]),
+                    parse_mode="Markdown",
+                )
+            except Exception as e:
+                if "Message is not modified" in str(e):
+                    pass
+                else:
+                    raise
+            await query.answer()
+            return
+
         if data == "menu_close":
             await query.edit_message_text("Menü geschlossen.")
             await query.message.reply_text(
@@ -657,6 +676,40 @@ async def daily_check(context: ContextTypes.DEFAULT_TYPE) -> None:
         LOGGER.error(f"daily_check: Error during daily check: {e}", exc_info=True)
 
 
+async def weekly_summary(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send weekly summary every Sunday evening."""
+    LOGGER.info("weekly_summary: Starting weekly summary")
+
+    if not config.student_chat_id:
+        LOGGER.warning("weekly_summary: STUDENT_CHAT_ID not set")
+        return
+
+    try:
+        # Get statistics for the past 7 days
+        stats = lernplan_service.get_weekly_statistics(config.student_chat_id, days=7)
+        summary_text = message_builder.build_weekly_statistics(stats)
+        
+        # Send to student
+        await context.bot.send_message(
+            chat_id=config.student_chat_id,
+            text=summary_text,
+            parse_mode="Markdown"
+        )
+        LOGGER.info("Sent weekly summary to student")
+        
+        # Send to parent
+        if config.parent_chat_id and config.parent_chat_id != config.student_chat_id:
+            await context.bot.send_message(
+                chat_id=config.parent_chat_id,
+                text=f"📊 Wochenzusammenfassung\n\n{summary_text}",
+                parse_mode="Markdown"
+            )
+            LOGGER.info("Sent weekly summary to parent")
+            
+    except Exception as e:
+        LOGGER.error(f"weekly_summary: Error during weekly summary: {e}", exc_info=True)
+
+
 async def dynamic_plan_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Job to send reminder for dynamic plan entry."""
     job_data = context.job.data or {}
@@ -777,6 +830,19 @@ def schedule_all_reminders(app: Application) -> None:
             name="daily_check_20",
         )
         LOGGER.info(f"Scheduled daily_check at {config.daily_check_time}")
+
+    # Schedule weekly summary (Sundays at 21:00)
+    has_weekly = any(job.name == "weekly_summary" for job in app.job_queue.jobs())
+    if not has_weekly:
+        from telegram.ext import JobQueue
+        # Run every Sunday at 21:00
+        app.job_queue.run_daily(
+            weekly_summary,
+            time=time(hour=21, minute=0, tzinfo=timezone),
+            days=(6,),  # 6 = Sunday (0=Monday, 6=Sunday)
+            name="weekly_summary",
+        )
+        LOGGER.info("Scheduled weekly_summary for Sundays at 21:00")
 
     LOGGER.info(f"Configuration: STUDENT={config.student_chat_id}, PARENT={config.parent_chat_id}")
 

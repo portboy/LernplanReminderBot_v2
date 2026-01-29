@@ -141,8 +141,7 @@ class MessageBuilder:
         lines.append("")
         
         # Jokers
-        jokers = settings.jokers_used
-        jokers_left = max(0, self.config.jokers_per_week - jokers)
+        jokers_left = settings.jokers_available
         lines.append(f"🃏 Joker übrig: {jokers_left}/{self.config.jokers_per_week}")
         
         return "\n".join(lines)
@@ -275,3 +274,51 @@ class MessageBuilder:
     def get_random_sad_gif(self) -> str:
         """Get random sad GIF."""
         return choice(self.config.sad_gifs)
+
+    def build_weekly_statistics(self, stats: dict[str, any]) -> str:
+        """Build weekly statistics message.
+        
+        Args:
+            stats: Dictionary with total_minutes, subject_minutes, start_date, end_date, days
+            
+        Returns:
+            Formatted message string
+        """
+        lines = [
+            "📈 **WOCHEN-STATISTIK**",
+            f"📅 Zeitraum: {stats['start_date']} - {stats['end_date']}",
+            "",
+        ]
+        
+        total_minutes = stats["total_minutes"]
+        subject_minutes = stats["subject_minutes"]
+        
+        if total_minutes == 0:
+            lines.append("🤷 Keine abgeschlossenen Lerneinheiten in diesem Zeitraum.")
+            return "\n".join(lines)
+        
+        # Total time
+        lines.append(f"⏱️ **Gesamtzeit:** {self.format_total_minutes(total_minutes)}")
+        lines.append("")
+        
+        # Per subject
+        if subject_minutes:
+            lines.append("📚 **Nach Fächern:**")
+            # Sort by minutes descending
+            sorted_subjects = sorted(subject_minutes.items(), key=lambda x: x[1], reverse=True)
+            
+            for subject, minutes in sorted_subjects:
+                # Get subject emoji
+                subject_config = self.config.get_subject_by_name(subject)
+                emoji = subject_config.emoji if subject_config else "📘"
+                duration = self.format_total_minutes(minutes)
+                
+                # Calculate percentage
+                percentage = (minutes / total_minutes * 100) if total_minutes > 0 else 0
+                bar_length = int(percentage / 10)  # 10% = 1 bar
+                bar = "█" * bar_length + "░" * (10 - bar_length)
+                
+                lines.append(f"{emoji} **{subject}**")
+                lines.append(f"   {bar} {duration} ({percentage:.0f}%)")
+            
+        return "\n".join(lines)
