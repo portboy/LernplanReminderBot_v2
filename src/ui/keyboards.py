@@ -197,3 +197,11 @@ class KeyboardBuilder:
                 ]
             ]
         )
+
+    def build_skip_comment_keyboard(self) -> InlineKeyboardMarkup:
+        """Build keyboard to skip comment entry."""
+        return InlineKeyboardMarkup(
+            [
+                [InlineKeyboardButton("Überspringen ⏭️", callback_data="skip_comment")]
+            ]
+        )

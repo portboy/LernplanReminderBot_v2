@@ -385,8 +385,10 @@ async def on_learned_response(update: Update, context: ContextTypes.DEFAULT_TYPE
             # Ask for optional comment
             await context.bot.send_message(
                 chat_id=query.message.chat_id,
-                text="Möchtest du noch einen Kommentar hinzufügen?\n"
-                     "Du kannst eine Textnachricht oder eine Sprachnachricht senden.",
+                text="💬 Möchtest du noch einen Kommentar hinzufügen?\n\n"
+                     "✍️ Schreibe einfach deine Nachricht ins Chatfenster oder\n"
+                     "🎤 sende eine Sprachnachricht.\n\n"
+                     "Oder klicke auf 'Überspringen'.",
                 reply_markup=keyboard_builder.build_skip_comment_keyboard(),
             )
             context.user_data["awaiting_comment"] = "yes"
@@ -407,8 +409,10 @@ async def on_learned_response(update: Update, context: ContextTypes.DEFAULT_TYPE
             # Ask for optional comment
             await context.bot.send_message(
                 chat_id=query.message.chat_id,
-                text="Möchtest du noch einen Kommentar hinzufügen?\n"
-                     "Du kannst eine Textnachricht oder eine Sprachnachricht senden.",
+                text="💬 Möchtest du noch einen Kommentar hinzufügen?\n\n"
+                     "✍️ Schreibe einfach deine Nachricht ins Chatfenster oder\n"
+                     "🎤 sende eine Sprachnachricht.\n\n"
+                     "Oder klicke auf 'Überspringen'.",
                 reply_markup=keyboard_builder.build_skip_comment_keyboard(),
             )
             context.user_data["awaiting_comment"] = "no"
