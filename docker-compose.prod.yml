@@ -9,10 +9,16 @@ services:
     container_name: lernplan-reminder-bot-v2
     restart: unless-stopped
     
+    # Zeitzone für korrekten Zeitstempel
+    environment:
+      - TZ=Europe/Berlin
+    
     # Daten und Konfiguration persistent speichern
     volumes:
       - ./data:/app/data
       - ./userconfig:/app/userconfig
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     
     # Keine Ports nötig - Bot nutzt ausgehende Verbindungen zu Telegram
     
