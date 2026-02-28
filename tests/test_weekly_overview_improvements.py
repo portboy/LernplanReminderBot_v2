@@ -98,28 +98,30 @@ def test_weekly_statistics_with_history(tmp_path):
     from datetime import date, timedelta
 
     today = date.today()
-    repo.save(UserSettings(
-        chat_id=100,
-        week_plan={"montag": DayPlan("Mathe", 30)},
-        learning_history=[
-            {
-                "date_iso": today.isoformat(),
-                "weekday": "montag",
-                "subject": "Mathe",
-                "planned_minutes": 30,
-                "source": "week_plan",
-                "learned_response": "yes",
-            },
-            {
-                "date_iso": (today - timedelta(days=1)).isoformat(),
-                "weekday": "sonntag",
-                "subject": "Englisch",
-                "planned_minutes": 45,
-                "source": "week_plan",
-                "learned_response": "yes",
-            },
-        ],
-    ))
+    repo.save(
+        UserSettings(
+            chat_id=100,
+            week_plan={"montag": DayPlan("Mathe", 30)},
+            learning_history=[
+                {
+                    "date_iso": today.isoformat(),
+                    "weekday": "montag",
+                    "subject": "Mathe",
+                    "planned_minutes": 30,
+                    "source": "week_plan",
+                    "learned_response": "yes",
+                },
+                {
+                    "date_iso": (today - timedelta(days=1)).isoformat(),
+                    "weekday": "sonntag",
+                    "subject": "Englisch",
+                    "planned_minutes": 45,
+                    "source": "week_plan",
+                    "learned_response": "yes",
+                },
+            ],
+        )
+    )
 
     svc = LernplanService(repo, TZ)
     stats = svc.get_weekly_statistics(100, days=7)
@@ -136,18 +138,20 @@ def test_weekly_statistics_excludes_no_response(tmp_path):
     from datetime import date
 
     today = date.today()
-    repo.save(UserSettings(
-        chat_id=200,
-        learning_history=[
-            {
-                "date_iso": today.isoformat(),
-                "subject": "Mathe",
-                "planned_minutes": 30,
-                "learned_response": "no",
-                "completed": False,
-            },
-        ],
-    ))
+    repo.save(
+        UserSettings(
+            chat_id=200,
+            learning_history=[
+                {
+                    "date_iso": today.isoformat(),
+                    "subject": "Mathe",
+                    "planned_minutes": 30,
+                    "learned_response": "no",
+                    "completed": False,
+                },
+            ],
+        )
+    )
 
     svc = LernplanService(repo, TZ)
     stats = svc.get_weekly_statistics(200, days=7)

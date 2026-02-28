@@ -7,7 +7,7 @@ from random import choice
 from zoneinfo import ZoneInfo
 
 from core.config import BotConfig
-from models.settings import DayPlan, UserSettings, WEEKDAYS
+from models.settings import WEEKDAYS, DayPlan, UserSettings
 
 
 class MessageBuilder:
@@ -73,7 +73,9 @@ class MessageBuilder:
             lines.append("🔁 Dynamische Einträge:")
             for entry in dynamic:
                 status = "✅" if entry.get("completed") else "⬜"
-                lines.append(f"{status} {entry.get('time_str', '--:--')} – {entry.get('subject', 'Unbekannt')}")
+                subj = entry.get("subject", "Unbekannt")
+                t = entry.get("time_str", "--:--")
+                lines.append(f"{status} {t} – {subj}")
         else:
             lines.append("🔁 Keine dynamischen Einträge für heute.")
 
@@ -109,7 +111,9 @@ class MessageBuilder:
                 sc = self.config.get_subject_by_name(entry.get("subject", ""))
                 emoji = sc.emoji if sc else "📘"
                 status = "✅" if entry.get("completed") else "⏰"
-                lines.append(f"{status} {entry.get('time_str', '--:--')} — {emoji} {entry.get('subject', 'Unbekannt')}")
+                subj = entry.get("subject", "Unbekannt")
+                t = entry.get("time_str", "--:--")
+                lines.append(f"{status} {t} — {emoji} {subj}")
         else:
             lines.append("🔔 **Erinnerungen heute:** Keine")
 
@@ -124,8 +128,13 @@ class MessageBuilder:
         today = WEEKDAYS[now_dt.weekday()]
 
         day_icons = {
-            "montag": "🔵", "dienstag": "🟢", "mittwoch": "🟡",
-            "donnerstag": "🟠", "freitag": "🟣", "samstag": "🟤", "sonntag": "⚪",
+            "montag": "🔵",
+            "dienstag": "🟢",
+            "mittwoch": "🟡",
+            "donnerstag": "🟠",
+            "freitag": "🟣",
+            "samstag": "🟤",
+            "sonntag": "⚪",
         }
 
         lines: list[str] = ["📊 **WOCHENÜBERSICHT**", ""]
@@ -148,13 +157,15 @@ class MessageBuilder:
         planned_days = len(week_plan)
         total_minutes = sum(p.minutes for p in week_plan.values())
 
-        lines.extend([
-            "━━━━━━━━━━━━━━━━━━━━",
-            "📈 **ZUSAMMENFASSUNG**",
-            "",
-            f"📅 Geplante Tage: **{planned_days}/7**",
-            f"⏱️ Gesamtzeit: **{self.format_total_minutes(total_minutes)}**",
-        ])
+        lines.extend(
+            [
+                "━━━━━━━━━━━━━━━━━━━━",
+                "📈 **ZUSAMMENFASSUNG**",
+                "",
+                f"📅 Geplante Tage: **{planned_days}/7**",
+                f"⏱️ Gesamtzeit: **{self.format_total_minutes(total_minutes)}**",
+            ]
+        )
 
         if reminder_times:
             lines.extend(["", "⏰ **ERINNERUNGSZEITEN**"])
@@ -172,7 +183,9 @@ class MessageBuilder:
         if dynamic_entries:
             for entry in dynamic_entries:
                 status = "✅" if entry.get("completed") else "⬜"
-                lines.append(f"{status} {entry.get('time_str', '--:--')} – {entry.get('subject', 'Unbekannt')}")
+                subj = entry.get("subject", "Unbekannt")
+                t = entry.get("time_str", "--:--")
+                lines.append(f"{status} {t} – {subj}")
         else:
             lines.append("Keine spontanen Lernpläne für heute hinterlegt.")
         lines.append(f"Erledigt: {completed_count}/{len(dynamic_entries)}")

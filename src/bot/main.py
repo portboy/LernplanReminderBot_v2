@@ -8,7 +8,7 @@ from datetime import datetime, time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     Application,
     ApplicationBuilder,
@@ -21,7 +21,7 @@ from telegram.ext import (
 
 from core.config import BotConfig, load_config
 from core.logging_config import setup_logging
-from models.settings import SettingsRepository, WEEKDAYS
+from models.settings import WEEKDAYS, SettingsRepository
 from services import LernplanService
 from ui.keyboards import KeyboardBuilder
 from ui.messages import MessageBuilder
@@ -107,9 +107,7 @@ async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message:
         return
     ctx = get_ctx(context)
-    await update.message.reply_text(
-        "Hauptmenü:", reply_markup=ctx.keyboards.build_main_menu()
-    )
+    await update.message.reply_text("Hauptmenü:", reply_markup=ctx.keyboards.build_main_menu())
 
 
 async def test_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -199,9 +197,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             try:
                 await query.edit_message_text(
                     text,
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("⬅️ Zurück", callback_data="menu_main")]
-                    ]),
+                    reply_markup=InlineKeyboardMarkup(
+                        [[InlineKeyboardButton("⬅️ Zurück", callback_data="menu_main")]]
+                    ),
                     parse_mode="Markdown",
                 )
             except Exception as e:
@@ -216,9 +214,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             try:
                 await query.edit_message_text(
                     text,
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("⬅️ Zurück", callback_data="menu_main")]
-                    ]),
+                    reply_markup=InlineKeyboardMarkup(
+                        [[InlineKeyboardButton("⬅️ Zurück", callback_data="menu_main")]]
+                    ),
                     parse_mode="Markdown",
                 )
             except Exception as e:
@@ -240,7 +238,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if data == "menu_times":
             cfg = ctx.config
             if chat_id in ctx.service.get_shared_chat_ids(cfg.student_chat_id, cfg.parent_chat_id):
-                times = ctx.service.get_shared_reminder_times(cfg.student_chat_id, cfg.parent_chat_id)
+                times = ctx.service.get_shared_reminder_times(
+                    cfg.student_chat_id, cfg.parent_chat_id
+                )
             else:
                 times = list(ctx.repo.load(chat_id).reminder_times)
 
@@ -274,8 +274,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             time_str = f"{hour}:{minute}"
             cfg = ctx.config
             ok, msg = ctx.service.add_reminder_time(
-                chat_id, time_str, cfg.max_reminder_times,
-                cfg.student_chat_id, cfg.parent_chat_id,
+                chat_id,
+                time_str,
+                cfg.max_reminder_times,
+                cfg.student_chat_id,
+                cfg.parent_chat_id,
             )
             if ok:
                 schedule_all_reminders(context.application)
@@ -283,7 +286,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
             # Refresh times menu
             if chat_id in ctx.service.get_shared_chat_ids(cfg.student_chat_id, cfg.parent_chat_id):
-                times = ctx.service.get_shared_reminder_times(cfg.student_chat_id, cfg.parent_chat_id)
+                times = ctx.service.get_shared_reminder_times(
+                    cfg.student_chat_id, cfg.parent_chat_id
+                )
             else:
                 times = list(ctx.repo.load(chat_id).reminder_times)
             await query.edit_message_text(
@@ -297,14 +302,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             time_str = data.removeprefix("del_time_")
             cfg = ctx.config
             ok, msg = ctx.service.remove_reminder_time(
-                chat_id, time_str, cfg.student_chat_id, cfg.parent_chat_id,
+                chat_id,
+                time_str,
+                cfg.student_chat_id,
+                cfg.parent_chat_id,
             )
             if ok:
                 schedule_all_reminders(context.application)
             await query.answer(msg, show_alert=not ok)
 
             if chat_id in ctx.service.get_shared_chat_ids(cfg.student_chat_id, cfg.parent_chat_id):
-                times = ctx.service.get_shared_reminder_times(cfg.student_chat_id, cfg.parent_chat_id)
+                times = ctx.service.get_shared_reminder_times(
+                    cfg.student_chat_id, cfg.parent_chat_id
+                )
             else:
                 times = list(ctx.repo.load(chat_id).reminder_times)
             await query.edit_message_text(
@@ -451,9 +461,9 @@ async def on_learned_response(update: Update, context: ContextTypes.DEFAULT_TYPE
         await context.bot.send_message(
             chat_id=chat_id,
             text="💬 Möchtest du noch einen Kommentar hinzufügen?\n\n"
-                 "✍️ Schreibe einfach deine Nachricht oder\n"
-                 "🎤 sende eine Sprachnachricht.\n\n"
-                 "Oder klicke auf 'Überspringen'.",
+            "✍️ Schreibe einfach deine Nachricht oder\n"
+            "🎤 sende eine Sprachnachricht.\n\n"
+            "Oder klicke auf 'Überspringen'.",
             reply_markup=ctx.keyboards.build_skip_comment_keyboard(),
         )
         context.user_data["awaiting_comment"] = data.removeprefix("learned_")
@@ -505,9 +515,7 @@ async def handle_free_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
 
     if text == "📋 Menü":
-        await update.message.reply_text(
-            "Hauptmenü:", reply_markup=ctx.keyboards.build_main_menu()
-        )
+        await update.message.reply_text("Hauptmenü:", reply_markup=ctx.keyboards.build_main_menu())
         return
 
     if "awaiting_minutes" in context.user_data:
@@ -522,8 +530,12 @@ async def handle_free_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         cfg = ctx.config
         ctx.service.update_day_plan(
-            chat_id, weekday, subject, minutes_value,
-            cfg.student_chat_id, cfg.parent_chat_id,
+            chat_id,
+            weekday,
+            subject,
+            minutes_value,
+            cfg.student_chat_id,
+            cfg.parent_chat_id,
         )
         schedule_all_reminders(context.application)
         await update.message.reply_text(
@@ -556,7 +568,8 @@ async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYP
                     chat_id=cfg.parent_chat_id, text="🎤 Sprachkommentar vom Schüler:"
                 )
                 await context.bot.send_voice(
-                    chat_id=cfg.parent_chat_id, voice=message.voice.file_id,
+                    chat_id=cfg.parent_chat_id,
+                    voice=message.voice.file_id,
                 )
             except Exception as e:
                 LOGGER.error(f"Failed to forward voice comment: {e}")
@@ -603,7 +616,8 @@ async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYP
             LOGGER.error(f"Failed to forward voice: {exc}")
 
     await message.reply_text(
-        "✅ Nachricht weitergeleitet und Plan aktualisiert." if forwarded
+        "✅ Nachricht weitergeleitet und Plan aktualisiert."
+        if forwarded
         else "✅ Plan aktualisiert."
     )
 
@@ -642,9 +656,7 @@ async def daily_check(context: ContextTypes.DEFAULT_TYPE) -> None:
         today = WEEKDAYS[now_dt.weekday()]
         today_iso = now_dt.date().isoformat()
 
-        todays_entries = [
-            e for e in settings.daily_dynamic_plan if e.get("date_iso") == today_iso
-        ]
+        todays_entries = [e for e in settings.daily_dynamic_plan if e.get("date_iso") == today_iso]
 
         def sort_key(e: dict) -> int:
             try:
@@ -879,8 +891,12 @@ def main() -> None:
     messages = MessageBuilder(cfg, tz)
 
     ctx = BotContext(
-        config=cfg, repo=repo, service=service,
-        keyboards=keyboards, messages=messages, timezone=tz,
+        config=cfg,
+        repo=repo,
+        service=service,
+        keyboards=keyboards,
+        messages=messages,
+        timezone=tz,
     )
 
     LOGGER.info("=" * 60)

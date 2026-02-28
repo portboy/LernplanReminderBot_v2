@@ -2,6 +2,7 @@
 
 import sys
 
+
 def check() -> bool:
     try:
         import json
@@ -44,9 +45,8 @@ def check() -> bool:
 
         # 3. Verify Telegram API reachable
         import urllib.request
-        req = urllib.request.Request(
-            "https://api.telegram.org", method="HEAD"
-        )
+
+        req = urllib.request.Request("https://api.telegram.org", method="HEAD")
         with urllib.request.urlopen(req, timeout=5) as resp:
             if resp.status >= 500:
                 print(f"HEALTH: Telegram API returned {resp.status}")

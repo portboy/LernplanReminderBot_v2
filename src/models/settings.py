@@ -118,9 +118,7 @@ class SettingsRepository:
         """Save settings atomically via write-to-temp + rename."""
         f = self._file_for(settings.chat_id)
         data = settings.to_dict()
-        fd, tmp_path = tempfile.mkstemp(
-            dir=str(self.base_path), suffix=".tmp", prefix="user_"
-        )
+        fd, tmp_path = tempfile.mkstemp(dir=str(self.base_path), suffix=".tmp", prefix="user_")
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 json.dump(data, fh, ensure_ascii=False, indent=2)

@@ -98,9 +98,12 @@ def test_user_settings_roundtrip(tmp_path):
 def test_learning_history_persists(tmp_path):
     """Learning history is saved and loaded correctly."""
     repo = SettingsRepository(tmp_path)
-    us = UserSettings(chat_id=42, learning_history=[
-        {"date_iso": "2026-02-27", "subject": "Mathe", "completed": True},
-    ])
+    us = UserSettings(
+        chat_id=42,
+        learning_history=[
+            {"date_iso": "2026-02-27", "subject": "Mathe", "completed": True},
+        ],
+    )
     repo.save(us)
     loaded = repo.load(42)
     assert len(loaded.learning_history) == 1

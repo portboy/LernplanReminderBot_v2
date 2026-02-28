@@ -56,7 +56,7 @@ class KeyboardBuilder:
                     f"{sc.emoji} {sc.name}", callback_data=f"plan_subject_{weekday}_{sc.name}"
                 )
             )
-        rows = [buttons[i: i + 2] for i in range(0, len(buttons), 2)]
+        rows = [buttons[i : i + 2] for i in range(0, len(buttons), 2)]
         rows.append([InlineKeyboardButton("⬅️ Tage", callback_data="plan_days")])
         return InlineKeyboardMarkup(rows)
 
@@ -65,9 +65,7 @@ class KeyboardBuilder:
         row: list[InlineKeyboardButton] = []
         for m in self.config.duration_choices:
             row.append(
-                InlineKeyboardButton(
-                    str(m), callback_data=f"plan_minutes_{weekday}_{subject}_{m}"
-                )
+                InlineKeyboardButton(str(m), callback_data=f"plan_minutes_{weekday}_{subject}_{m}")
             )
             if len(row) == 4:
                 rows.append(row)
@@ -75,9 +73,11 @@ class KeyboardBuilder:
         if row:
             rows.append(row)
         rows.append(
-            [InlineKeyboardButton(
-                "Andere", callback_data=f"plan_minutes_custom_{weekday}_{subject}"
-            )]
+            [
+                InlineKeyboardButton(
+                    "Andere", callback_data=f"plan_minutes_custom_{weekday}_{subject}"
+                )
+            ]
         )
         rows.append([InlineKeyboardButton("⬅️ Fach", callback_data=f"plan_day_{weekday}")])
         return InlineKeyboardMarkup(rows)
@@ -111,9 +111,7 @@ class KeyboardBuilder:
                 row = []
         if row:
             rows.append(row)
-        rows.append(
-            [InlineKeyboardButton(f"⬅️ {subject} ändern", callback_data="morning_subjects")]
-        )
+        rows.append([InlineKeyboardButton(f"⬅️ {subject} ändern", callback_data="morning_subjects")])
         return InlineKeyboardMarkup(rows)
 
     # ------------------------------------------------------------------
@@ -126,10 +124,12 @@ class KeyboardBuilder:
 
         if reminder_times:
             for t in sorted(reminder_times):
-                rows.append([
-                    InlineKeyboardButton(f"⏰ {t}", callback_data="noop"),
-                    InlineKeyboardButton("🗑️", callback_data=f"del_time_{t}"),
-                ])
+                rows.append(
+                    [
+                        InlineKeyboardButton(f"⏰ {t}", callback_data="noop"),
+                        InlineKeyboardButton("🗑️", callback_data=f"del_time_{t}"),
+                    ]
+                )
         else:
             rows.append([InlineKeyboardButton("— Keine Zeiten —", callback_data="noop")])
 
@@ -142,9 +142,7 @@ class KeyboardBuilder:
         rows: list[list[InlineKeyboardButton]] = []
         row: list[InlineKeyboardButton] = []
         for h in range(24):
-            row.append(
-                InlineKeyboardButton(f"{h:02d}", callback_data=f"pick_hour_{h:02d}")
-            )
+            row.append(InlineKeyboardButton(f"{h:02d}", callback_data=f"pick_hour_{h:02d}"))
             if len(row) == 6:
                 rows.append(row)
                 row = []
@@ -159,9 +157,7 @@ class KeyboardBuilder:
         row: list[InlineKeyboardButton] = []
         for m in (0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55):
             row.append(
-                InlineKeyboardButton(
-                    f"{hour}:{m:02d}", callback_data=f"pick_minute_{hour}_{m:02d}"
-                )
+                InlineKeyboardButton(f"{hour}:{m:02d}", callback_data=f"pick_minute_{hour}_{m:02d}")
             )
             if len(row) == 4:
                 rows.append(row)
@@ -178,8 +174,13 @@ class KeyboardBuilder:
     def build_overview_menu(self, week_plan: dict) -> InlineKeyboardMarkup:
         buttons: list[list[InlineKeyboardButton]] = []
         emoji_map = {
-            "montag": "🟦", "dienstag": "🟩", "mittwoch": "🟨",
-            "donnerstag": "🟧", "freitag": "🟪", "samstag": "🟫", "sonntag": "⬜",
+            "montag": "🟦",
+            "dienstag": "🟩",
+            "mittwoch": "🟨",
+            "donnerstag": "🟧",
+            "freitag": "🟪",
+            "samstag": "🟫",
+            "sonntag": "⬜",
         }
         day_buttons: list[InlineKeyboardButton] = []
         for weekday in WEEKDAYS[:4]:
@@ -218,10 +219,12 @@ class KeyboardBuilder:
             buttons.append(day_buttons)
 
         buttons.append([InlineKeyboardButton("📅 Wochenplan", callback_data="menu_plan")])
-        buttons.append([
-            InlineKeyboardButton("🔄 Aktualisieren", callback_data="menu_overview"),
-            InlineKeyboardButton("⬅️ Zurück", callback_data="menu_main"),
-        ])
+        buttons.append(
+            [
+                InlineKeyboardButton("🔄 Aktualisieren", callback_data="menu_overview"),
+                InlineKeyboardButton("⬅️ Zurück", callback_data="menu_main"),
+            ]
+        )
         return InlineKeyboardMarkup(buttons)
 
     # ------------------------------------------------------------------
@@ -229,14 +232,16 @@ class KeyboardBuilder:
     # ------------------------------------------------------------------
 
     def build_learned_response_keyboard(self) -> InlineKeyboardMarkup:
-        return InlineKeyboardMarkup([
+        return InlineKeyboardMarkup(
             [
-                InlineKeyboardButton("Ja ✅", callback_data="learned_yes"),
-                InlineKeyboardButton("Nein ❌", callback_data="learned_no"),
+                [
+                    InlineKeyboardButton("Ja ✅", callback_data="learned_yes"),
+                    InlineKeyboardButton("Nein ❌", callback_data="learned_no"),
+                ]
             ]
-        ])
+        )
 
     def build_skip_comment_keyboard(self) -> InlineKeyboardMarkup:
-        return InlineKeyboardMarkup([
-            [InlineKeyboardButton("Überspringen ⏭️", callback_data="skip_comment")]
-        ])
+        return InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Überspringen ⏭️", callback_data="skip_comment")]]
+        )

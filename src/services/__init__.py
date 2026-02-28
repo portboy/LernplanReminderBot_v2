@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from models.settings import DayPlan, SettingsRepository, UserSettings, WEEKDAYS
+from models.settings import WEEKDAYS, DayPlan, SettingsRepository
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,9 +22,7 @@ class LernplanService:
     # Shared state helpers
     # ------------------------------------------------------------------
 
-    def get_shared_chat_ids(
-        self, student_id: int | None, parent_id: int | None
-    ) -> list[int]:
+    def get_shared_chat_ids(self, student_id: int | None, parent_id: int | None) -> list[int]:
         """Get list of chat IDs that share plans."""
         ids: list[int] = []
         if student_id:
@@ -77,9 +75,7 @@ class LernplanService:
     # Reminder time management
     # ------------------------------------------------------------------
 
-    def get_shared_reminder_times(
-        self, student_id: int | None, parent_id: int | None
-    ) -> list[str]:
+    def get_shared_reminder_times(self, student_id: int | None, parent_id: int | None) -> list[str]:
         """Return the shared reminder times (prioritizes student)."""
         for candidate in (student_id, parent_id):
             if candidate is None:
@@ -184,9 +180,7 @@ class LernplanService:
         today = WEEKDAYS[now_dt.weekday()]
         return settings.week_plan.get(today)
 
-    def add_dynamic_plan_entry(
-        self, chat_id: int, subject: str, time_str: str
-    ) -> bool:
+    def add_dynamic_plan_entry(self, chat_id: int, subject: str, time_str: str) -> bool:
         try:
             hh, mm = map(int, time_str.split(":"))
             selected_time = time(hour=hh, minute=mm)
@@ -239,9 +233,7 @@ class LernplanService:
     # Learning history & statistics
     # ------------------------------------------------------------------
 
-    def archive_daily_to_history(
-        self, chat_id: int, learned_response: str | None = None
-    ) -> int:
+    def archive_daily_to_history(self, chat_id: int, learned_response: str | None = None) -> int:
         """Archive today's completed dynamic entries into learning_history.
 
         Call this at the end of the day *before* clearing daily_dynamic_plan.
@@ -275,15 +267,17 @@ class LernplanService:
             e.get("date_iso") == today_iso and e.get("source") == "week_plan"
             for e in settings.learning_history
         ):
-            settings.learning_history.append({
-                "date_iso": today_iso,
-                "weekday": today,
-                "subject": day_plan.subject,
-                "planned_minutes": day_plan.minutes,
-                "source": "week_plan",
-                "learned_response": learned_response or "",
-                "timestamp": now_dt.isoformat(),
-            })
+            settings.learning_history.append(
+                {
+                    "date_iso": today_iso,
+                    "weekday": today,
+                    "subject": day_plan.subject,
+                    "planned_minutes": day_plan.minutes,
+                    "source": "week_plan",
+                    "learned_response": learned_response or "",
+                    "timestamp": now_dt.isoformat(),
+                }
+            )
             archived += 1
 
         if archived > 0:
@@ -362,7 +356,4 @@ class LernplanService:
     # ------------------------------------------------------------------
 
     def _clone_week_plan(self, plan: dict[str, DayPlan]) -> dict[str, DayPlan]:
-        return {
-            day: DayPlan(subject=v.subject, minutes=v.minutes)
-            for day, v in plan.items()
-        }
+        return {day: DayPlan(subject=v.subject, minutes=v.minutes) for day, v in plan.items()}

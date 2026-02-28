@@ -44,9 +44,7 @@ class BotConfig(BaseModel):
     dynamic_planning_times: list[str] = Field(
         default_factory=lambda: ["07:30", "09:00", "14:00", "16:30", "18:30", "20:30"]
     )
-    duration_choices: list[int] = Field(
-        default_factory=lambda: [15, 30, 45, 60, 90, 120]
-    )
+    duration_choices: list[int] = Field(default_factory=lambda: [15, 30, 45, 60, 90, 120])
 
     # Limits
     min_minutes: int = 1
@@ -102,7 +100,7 @@ class BotConfig(BaseModel):
                 if not (0 <= hour < 24 and 0 <= minute < 60):
                     raise ValueError(f"Invalid time values: {time_str}")
             except (ValueError, AttributeError) as e:
-                raise ValueError(f"Invalid time format: {time_str}: {e}")
+                raise ValueError(f"Invalid time format: {time_str}: {e}") from e
         return v
 
     def get_subject_names(self) -> list[str]:
