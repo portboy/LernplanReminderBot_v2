@@ -12,7 +12,6 @@ from typing import Any, Dict, List
 LOGGER = logging.getLogger(__name__)
 
 WEEKDAYS = ["montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag"]
-ALLOWED_SUBJECTS = ["Mathe", "Englisch"]  # aktuell begrenzt laut Spezifikation
 
 
 @dataclass

@@ -88,7 +88,7 @@ class KeyboardBuilder:
 
     def build_morning_planning_keyboard(self, jokers_left: int) -> InlineKeyboardMarkup:
         subject_buttons = []
-        for sc in self.config.allowed_subjects[:2]:
+        for sc in self.config.allowed_subjects:
             subject_buttons.append(
                 InlineKeyboardButton(
                     f"{sc.emoji} {sc.name}", callback_data=f"plan_subject_{sc.name}"
