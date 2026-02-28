@@ -1,0 +1,72 @@
+﻿2026-02-28T13:04:21.3619568Z ##[group]Run actions/checkout@v4
+2026-02-28T13:04:21.3620826Z with:
+2026-02-28T13:04:21.3621622Z   repository: portboy/LernplanReminderBot_v2
+2026-02-28T13:04:21.3623096Z   token: ***
+2026-02-28T13:04:21.3623821Z   ssh-strict: true
+2026-02-28T13:04:21.3624544Z   ssh-user: git
+2026-02-28T13:04:21.3625311Z   persist-credentials: true
+2026-02-28T13:04:21.3626140Z   clean: true
+2026-02-28T13:04:21.3626868Z   sparse-checkout-cone-mode: true
+2026-02-28T13:04:21.3627773Z   fetch-depth: 1
+2026-02-28T13:04:21.3628473Z   fetch-tags: false
+2026-02-28T13:04:21.3629202Z   show-progress: true
+2026-02-28T13:04:21.3629952Z   lfs: false
+2026-02-28T13:04:21.3630622Z   submodules: false
+2026-02-28T13:04:21.3631373Z   set-safe-directory: true
+2026-02-28T13:04:21.3632444Z ##[endgroup]
+2026-02-28T13:04:21.4765949Z Syncing repository: portboy/LernplanReminderBot_v2
+2026-02-28T13:04:21.4768594Z ##[group]Getting Git version info
+2026-02-28T13:04:21.4770229Z Working directory is '/home/runner/work/LernplanReminderBot_v2/LernplanReminderBot_v2'
+2026-02-28T13:04:21.4772539Z [command]/usr/bin/git version
+2026-02-28T13:04:21.5432344Z git version 2.53.0
+2026-02-28T13:04:21.5465169Z ##[endgroup]
+2026-02-28T13:04:21.5483757Z Temporarily overriding HOME='/home/runner/work/_temp/83282cf4-5d04-4079-913a-c1b0acf3b750' before making global git config changes
+2026-02-28T13:04:21.5486517Z Adding repository directory to the temporary git global config as a safe directory
+2026-02-28T13:04:21.5498415Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/LernplanReminderBot_v2/LernplanReminderBot_v2
+2026-02-28T13:04:21.5542410Z Deleting the contents of '/home/runner/work/LernplanReminderBot_v2/LernplanReminderBot_v2'
+2026-02-28T13:04:21.5547893Z ##[group]Initializing the repository
+2026-02-28T13:04:21.5551142Z [command]/usr/bin/git init /home/runner/work/LernplanReminderBot_v2/LernplanReminderBot_v2
+2026-02-28T13:04:21.5989513Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-02-28T13:04:21.5994266Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-02-28T13:04:21.5996623Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-02-28T13:04:21.5998009Z hint: call:
+2026-02-28T13:04:21.5998646Z hint:
+2026-02-28T13:04:21.5999497Z hint: 	git config --global init.defaultBranch <name>
+2026-02-28T13:04:21.6001100Z hint:
+2026-02-28T13:04:21.6002423Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-02-28T13:04:21.6004502Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-02-28T13:04:21.6006045Z hint:
+2026-02-28T13:04:21.6006720Z hint: 	git branch -m <name>
+2026-02-28T13:04:21.6007902Z hint:
+2026-02-28T13:04:21.6009700Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-02-28T13:04:21.6012007Z Initialized empty Git repository in /home/runner/work/LernplanReminderBot_v2/LernplanReminderBot_v2/.git/
+2026-02-28T13:04:21.6017675Z [command]/usr/bin/git remote add origin https://github.com/portboy/LernplanReminderBot_v2
+2026-02-28T13:04:21.6051265Z ##[endgroup]
+2026-02-28T13:04:21.6053684Z ##[group]Disabling automatic garbage collection
+2026-02-28T13:04:21.6055710Z [command]/usr/bin/git config --local gc.auto 0
+2026-02-28T13:04:21.6090149Z ##[endgroup]
+2026-02-28T13:04:21.6091407Z ##[group]Setting up auth
+2026-02-28T13:04:21.6096772Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-02-28T13:04:21.6130642Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-02-28T13:04:22.2476819Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-02-28T13:04:22.2511876Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-02-28T13:04:22.2746600Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-02-28T13:04:22.2787139Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-02-28T13:04:22.3020656Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-02-28T13:04:22.3055338Z ##[endgroup]
+2026-02-28T13:04:22.3056231Z ##[group]Fetching the repository
+2026-02-28T13:04:22.3064305Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +852c1b6ce39d4a6dc3674054ffc0af269bffb740:refs/remotes/origin/main
+2026-02-28T13:04:22.8346702Z From https://github.com/portboy/LernplanReminderBot_v2
+2026-02-28T13:04:22.8347739Z  * [new ref]         852c1b6ce39d4a6dc3674054ffc0af269bffb740 -> origin/main
+2026-02-28T13:04:22.8381651Z ##[endgroup]
+2026-02-28T13:04:22.8382596Z ##[group]Determining the checkout info
+2026-02-28T13:04:22.8384644Z ##[endgroup]
+2026-02-28T13:04:22.8390216Z [command]/usr/bin/git sparse-checkout disable
+2026-02-28T13:04:22.8433130Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-02-28T13:04:22.8460082Z ##[group]Checking out the ref
+2026-02-28T13:04:22.8464882Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-02-28T13:04:22.8535221Z Switched to a new branch 'main'
+2026-02-28T13:04:22.8537997Z branch 'main' set up to track 'origin/main'.
+2026-02-28T13:04:22.8544234Z ##[endgroup]
+2026-02-28T13:04:22.8579583Z [command]/usr/bin/git log -1 --format=%H
+2026-02-28T13:04:22.8602985Z 852c1b6ce39d4a6dc3674054ffc0af269bffb740

@@ -1,0 +1,178 @@
+﻿2026-02-28T13:04:31.2210566Z ##[group]Run ruff check src/
+2026-02-28T13:04:31.2210867Z [36;1mruff check src/[0m
+2026-02-28T13:04:31.2260765Z shell: /usr/bin/bash -e {0}
+2026-02-28T13:04:31.2261012Z env:
+2026-02-28T13:04:31.2261271Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-28T13:04:31.2261743Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib/pkgconfig
+2026-02-28T13:04:31.2262207Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-28T13:04:31.2262602Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-28T13:04:31.2263256Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-28T13:04:31.2263662Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib
+2026-02-28T13:04:31.2263998Z ##[endgroup]
+2026-02-28T13:04:31.2427504Z src/bot/main.py:3:1: I001 [*] Import block is un-sorted or un-formatted
+2026-02-28T13:04:31.2428250Z    |
+2026-02-28T13:04:31.2429024Z  1 |   """Main bot application — refactored architecture (v2)."""
+2026-02-28T13:04:31.2429608Z  2 |   
+2026-02-28T13:04:31.2430019Z  3 | / from __future__ import annotations
+2026-02-28T13:04:31.2430450Z  4 | | 
+2026-02-28T13:04:31.2430715Z  5 | | import logging
+2026-02-28T13:04:31.2431080Z  6 | | from dataclasses import dataclass
+2026-02-28T13:04:31.2431534Z  7 | | from datetime import datetime, time
+2026-02-28T13:04:31.2432275Z  8 | | from pathlib import Path
+2026-02-28T13:04:31.2432680Z  9 | | from zoneinfo import ZoneInfo
+2026-02-28T13:04:31.2433313Z 10 | | 
+2026-02-28T13:04:31.2433827Z 11 | | from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+2026-02-28T13:04:31.2434261Z 12 | | from telegram.ext import (
+2026-02-28T13:04:31.2434500Z 13 | |     Application,
+2026-02-28T13:04:31.2434715Z 14 | |     ApplicationBuilder,
+2026-02-28T13:04:31.2434951Z 15 | |     CallbackQueryHandler,
+2026-02-28T13:04:31.2435206Z 16 | |     CommandHandler,
+2026-02-28T13:04:31.2435415Z 17 | |     ContextTypes,
+2026-02-28T13:04:31.2435616Z 18 | |     MessageHandler,
+2026-02-28T13:04:31.2435804Z 19 | |     filters,
+2026-02-28T13:04:31.2436004Z 20 | | )
+2026-02-28T13:04:31.2436167Z 21 | | 
+2026-02-28T13:04:31.2436440Z 22 | | from core.config import BotConfig, load_config
+2026-02-28T13:04:31.2436762Z 23 | | from core.logging_config import setup_logging
+2026-02-28T13:04:31.2437116Z 24 | | from models.settings import SettingsRepository, WEEKDAYS
+2026-02-28T13:04:31.2437459Z 25 | | from services import LernplanService
+2026-02-28T13:04:31.2437737Z 26 | | from ui.keyboards import KeyboardBuilder
+2026-02-28T13:04:31.2438031Z 27 | | from ui.messages import MessageBuilder
+2026-02-28T13:04:31.2438423Z 28 | | 
+2026-02-28T13:04:31.2438733Z 29 | | LOGGER = logging.getLogger(__name__)
+2026-02-28T13:04:31.2439147Z    | |_^ I001
+2026-02-28T13:04:31.2439412Z    |
+2026-02-28T13:04:31.2439686Z    = help: Organize imports
+2026-02-28T13:04:31.2439936Z 
+2026-02-28T13:04:31.2440146Z src/bot/main.py:243:101: E501 Line too long (102 > 100)
+2026-02-28T13:04:31.2440662Z     |
+2026-02-28T13:04:31.2440925Z 241 |             cfg = ctx.config
+2026-02-28T13:04:31.2441858Z 242 |             if chat_id in ctx.service.get_shared_chat_ids(cfg.student_chat_id, cfg.parent_chat_id):
+2026-02-28T13:04:31.2442934Z 243 |                 times = ctx.service.get_shared_reminder_times(cfg.student_chat_id, cfg.parent_chat_id)
+2026-02-28T13:04:31.2443467Z     |                                                                                                     ^^ E501
+2026-02-28T13:04:31.2443783Z 244 |             else:
+2026-02-28T13:04:31.2444049Z 245 |                 times = list(ctx.repo.load(chat_id).reminder_times)
+2026-02-28T13:04:31.2444347Z     |
+2026-02-28T13:04:31.2444434Z 
+2026-02-28T13:04:31.2444557Z src/bot/main.py:286:101: E501 Line too long (102 > 100)
+2026-02-28T13:04:31.2444832Z     |
+2026-02-28T13:04:31.2444991Z 284 |             # Refresh times menu
+2026-02-28T13:04:31.2445402Z 285 |             if chat_id in ctx.service.get_shared_chat_ids(cfg.student_chat_id, cfg.parent_chat_id):
+2026-02-28T13:04:31.2445990Z 286 |                 times = ctx.service.get_shared_reminder_times(cfg.student_chat_id, cfg.parent_chat_id)
+2026-02-28T13:04:31.2446711Z     |                                                                                                     ^^ E501
+2026-02-28T13:04:31.2447026Z 287 |             else:
+2026-02-28T13:04:31.2447282Z 288 |                 times = list(ctx.repo.load(chat_id).reminder_times)
+2026-02-28T13:04:31.2447578Z     |
+2026-02-28T13:04:31.2447664Z 
+2026-02-28T13:04:31.2447780Z src/bot/main.py:307:101: E501 Line too long (102 > 100)
+2026-02-28T13:04:31.2448043Z     |
+2026-02-28T13:04:31.2448358Z 306 |             if chat_id in ctx.service.get_shared_chat_ids(cfg.student_chat_id, cfg.parent_chat_id):
+2026-02-28T13:04:31.2448942Z 307 |                 times = ctx.service.get_shared_reminder_times(cfg.student_chat_id, cfg.parent_chat_id)
+2026-02-28T13:04:31.2449432Z     |                                                                                                     ^^ E501
+2026-02-28T13:04:31.2449736Z 308 |             else:
+2026-02-28T13:04:31.2449992Z 309 |                 times = list(ctx.repo.load(chat_id).reminder_times)
+2026-02-28T13:04:31.2450275Z     |
+2026-02-28T13:04:31.2450363Z 
+2026-02-28T13:04:31.2450908Z src/core/config.py:105:17: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+2026-02-28T13:04:31.2451704Z     |
+2026-02-28T13:04:31.2451930Z 103 |                     raise ValueError(f"Invalid time values: {time_str}")
+2026-02-28T13:04:31.2452298Z 104 |             except (ValueError, AttributeError) as e:
+2026-02-28T13:04:31.2452661Z 105 |                 raise ValueError(f"Invalid time format: {time_str}: {e}")
+2026-02-28T13:04:31.2453202Z     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ B904
+2026-02-28T13:04:31.2453484Z 106 |         return v
+2026-02-28T13:04:31.2453663Z     |
+2026-02-28T13:04:31.2453748Z 
+2026-02-28T13:04:31.2453937Z src/healthcheck.py:3:1: I001 [*] Import block is un-sorted or un-formatted
+2026-02-28T13:04:31.2454270Z   |
+2026-02-28T13:04:31.2454627Z 1 |   """Health check script — verifies bot can reach Telegram API."""
+2026-02-28T13:04:31.2454936Z 2 |   
+2026-02-28T13:04:31.2455090Z 3 | / import sys
+2026-02-28T13:04:31.2455256Z 4 | | 
+2026-02-28T13:04:31.2455441Z 5 | | def check() -> bool:
+2026-02-28T13:04:31.2455638Z   | |_^ I001
+2026-02-28T13:04:31.2455802Z 6 |       try:
+2026-02-28T13:04:31.2455968Z 7 |           import json
+2026-02-28T13:04:31.2456160Z   |
+2026-02-28T13:04:31.2456329Z   = help: Organize imports
+2026-02-28T13:04:31.2456464Z 
+2026-02-28T13:04:31.2456652Z src/services/__init__.py:3:1: I001 [*] Import block is un-sorted or un-formatted
+2026-02-28T13:04:31.2457004Z    |
+2026-02-28T13:04:31.2457181Z  1 |   """Service layer for business logic."""
+2026-02-28T13:04:31.2457423Z  2 |   
+2026-02-28T13:04:31.2457591Z  3 | / from __future__ import annotations
+2026-02-28T13:04:31.2457824Z  4 | | 
+2026-02-28T13:04:31.2457992Z  5 | | import logging
+2026-02-28T13:04:31.2458223Z  6 | | from datetime import datetime, time, timedelta
+2026-02-28T13:04:31.2458510Z  7 | | from zoneinfo import ZoneInfo
+2026-02-28T13:04:31.2458728Z  8 | | 
+2026-02-28T13:04:31.2459027Z  9 | | from models.settings import DayPlan, SettingsRepository, UserSettings, WEEKDAYS
+2026-02-28T13:04:31.2459409Z 10 | | 
+2026-02-28T13:04:31.2459586Z 11 | | LOGGER = logging.getLogger(__name__)
+2026-02-28T13:04:31.2459825Z    | |_^ I001
+2026-02-28T13:04:31.2459977Z    |
+2026-02-28T13:04:31.2460139Z    = help: Organize imports
+2026-02-28T13:04:31.2460276Z 
+2026-02-28T13:04:31.2460727Z src/services/__init__.py:9:58: F401 `models.settings.UserSettings` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+2026-02-28T13:04:31.2461327Z    |
+2026-02-28T13:04:31.2461484Z  7 | from zoneinfo import ZoneInfo
+2026-02-28T13:04:31.2461704Z  8 | 
+2026-02-28T13:04:31.2461999Z  9 | from models.settings import DayPlan, SettingsRepository, UserSettings, WEEKDAYS
+2026-02-28T13:04:31.2462646Z    |                                                          ^^^^^^^^^^^^ F401
+2026-02-28T13:04:31.2463145Z 10 | 
+2026-02-28T13:04:31.2463320Z 11 | LOGGER = logging.getLogger(__name__)
+2026-02-28T13:04:31.2463558Z    |
+2026-02-28T13:04:31.2463797Z    = help: Use an explicit re-export: `UserSettings as UserSettings`
+2026-02-28T13:04:31.2464069Z 
+2026-02-28T13:04:31.2464245Z src/ui/messages.py:3:1: I001 [*] Import block is un-sorted or un-formatted
+2026-02-28T13:04:31.2464571Z    |
+2026-02-28T13:04:31.2464750Z  1 |   """Message builders and formatters."""
+2026-02-28T13:04:31.2464992Z  2 |   
+2026-02-28T13:04:31.2465159Z  3 | / from __future__ import annotations
+2026-02-28T13:04:31.2465393Z  4 | | 
+2026-02-28T13:04:31.2465554Z  5 | | from datetime import datetime
+2026-02-28T13:04:31.2465792Z  6 | | from random import choice
+2026-02-28T13:04:31.2466013Z  7 | | from zoneinfo import ZoneInfo
+2026-02-28T13:04:31.2466227Z  8 | | 
+2026-02-28T13:04:31.2466399Z  9 | | from core.config import BotConfig
+2026-02-28T13:04:31.2466731Z 10 | | from models.settings import DayPlan, UserSettings, WEEKDAYS
+2026-02-28T13:04:31.2467041Z 11 | | 
+2026-02-28T13:04:31.2467178Z 12 | | 
+2026-02-28T13:04:31.2467343Z 13 | | class MessageBuilder:
+2026-02-28T13:04:31.2467544Z    | |_^ I001
+2026-02-28T13:04:31.2467735Z 14 |       """Builder for message texts."""
+2026-02-28T13:04:31.2468089Z    |
+2026-02-28T13:04:31.2468250Z    = help: Organize imports
+2026-02-28T13:04:31.2468388Z 
+2026-02-28T13:04:31.2468520Z src/ui/messages.py:76:101: E501 Line too long (112 > 100)
+2026-02-28T13:04:31.2468806Z    |
+2026-02-28T13:04:31.2468960Z 74 |             for entry in dynamic:
+2026-02-28T13:04:31.2469331Z 75 |                 status = "✅" if entry.get("completed") else "⬜"
+2026-02-28T13:04:31.2469900Z 76 |                 lines.append(f"{status} {entry.get('time_str', '--:--')} – {entry.get('subject', 'Unbekannt')}")
+2026-02-28T13:04:31.2470418Z    |                                                                                                     ^^^^^^^^^^^^ E501
+2026-02-28T13:04:31.2470759Z 77 |         else:
+2026-02-28T13:04:31.2471090Z 78 |             lines.append("🔁 Keine dynamischen Einträge für heute.")
+2026-02-28T13:04:31.2471432Z    |
+2026-02-28T13:04:31.2471515Z 
+2026-02-28T13:04:31.2471650Z src/ui/messages.py:112:101: E501 Line too long (120 > 100)
+2026-02-28T13:04:31.2471941Z     |
+2026-02-28T13:04:31.2472181Z 110 |                 emoji = sc.emoji if sc else "📘"
+2026-02-28T13:04:31.2472553Z 111 |                 status = "✅" if entry.get("completed") else "⏰"
+2026-02-28T13:04:31.2473636Z 112 |                 lines.append(f"{status} {entry.get('time_str', '--:--')} — {emoji} {entry.get('subject', 'Unbekannt')}")
+2026-02-28T13:04:31.2474235Z     |                                                                                                     ^^^^^^^^^^^^^^^^^^^^ E501
+2026-02-28T13:04:31.2474580Z 113 |         else:
+2026-02-28T13:04:31.2474890Z 114 |             lines.append("🔔 **Erinnerungen heute:** Keine")
+2026-02-28T13:04:31.2475192Z     |
+2026-02-28T13:04:31.2475280Z 
+2026-02-28T13:04:31.2475424Z src/ui/messages.py:175:101: E501 Line too long (112 > 100)
+2026-02-28T13:04:31.2475702Z     |
+2026-02-28T13:04:31.2475891Z 173 |             for entry in dynamic_entries:
+2026-02-28T13:04:31.2476257Z 174 |                 status = "✅" if entry.get("completed") else "⬜"
+2026-02-28T13:04:31.2476848Z 175 |                 lines.append(f"{status} {entry.get('time_str', '--:--')} – {entry.get('subject', 'Unbekannt')}")
+2026-02-28T13:04:31.2477381Z     |                                                                                                     ^^^^^^^^^^^^ E501
+2026-02-28T13:04:31.2477702Z 176 |         else:
+2026-02-28T13:04:31.2478063Z 177 |             lines.append("Keine spontanen Lernpläne für heute hinterlegt.")
+2026-02-28T13:04:31.2478438Z     |
+2026-02-28T13:04:31.2478527Z 
+2026-02-28T13:04:31.2478604Z Found 12 errors.
+2026-02-28T13:04:31.2478796Z [*] 4 fixable with the `--fix` option.
+2026-02-28T13:04:31.2489179Z ##[error]Process completed with exit code 1.
