@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
+import tempfile
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
+
+LOGGER = logging.getLogger(__name__)
 
 WEEKDAYS = ["montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag"]
 ALLOWED_SUBJECTS = ["Mathe", "Englisch"]  # aktuell begrenzt laut Spezifikation
@@ -31,6 +36,7 @@ class UserSettings:
     jokers_available: int = 1
     last_joker_reset_iso: str = ""
     daily_dynamic_plan: List[Dict[str, Any]] = field(default_factory=list)
+    learning_history: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -40,6 +46,7 @@ class UserSettings:
             "jokers_available": self.jokers_available,
             "last_joker_reset_iso": self.last_joker_reset_iso,
             "daily_dynamic_plan": [dict(entry) for entry in self.daily_dynamic_plan],
+            "learning_history": [dict(entry) for entry in self.learning_history],
         }
 
     @staticmethod
@@ -53,6 +60,12 @@ class UserSettings:
         ]
         last_reset = data.get("last_joker_reset_iso")
         last_reset_str = last_reset if isinstance(last_reset, str) else ""
+        raw_history = data.get("learning_history", [])
+        if not isinstance(raw_history, list):
+            raw_history = []
+        learning_history: List[Dict[str, Any]] = [
+            dict(item) for item in raw_history if isinstance(item, dict)
+        ]
         return UserSettings(
             chat_id=int(data["chat_id"]),
             reminder_times=list(data.get("reminder_times", [])),
@@ -60,6 +73,7 @@ class UserSettings:
             jokers_available=int(data.get("jokers_available", 1)),
             last_joker_reset_iso=last_reset_str,
             daily_dynamic_plan=daily_dynamic_plan,
+            learning_history=learning_history,
         )
 
     def ensure_recent_joker_reset(self, reference_date: date | None = None) -> bool:
@@ -102,9 +116,22 @@ class SettingsRepository:
         return settings
 
     def save(self, settings: UserSettings) -> None:
+        """Save settings atomically via write-to-temp + rename."""
         f = self._file_for(settings.chat_id)
-        with f.open("w", encoding="utf-8") as fh:
-            json.dump(settings.to_dict(), fh, ensure_ascii=False, indent=2)
+        data = settings.to_dict()
+        fd, tmp_path = tempfile.mkstemp(
+            dir=str(self.base_path), suffix=".tmp", prefix="user_"
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                json.dump(data, fh, ensure_ascii=False, indent=2)
+            os.replace(tmp_path, str(f))  # atomic on same filesystem
+        except Exception:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
 
     def list_user_ids(self) -> list[int]:
         ids: list[int] = []

@@ -1,152 +1,188 @@
-"""Test the improved weekly overview functionality."""
+"""Tests for weekly overview and statistics (against new architecture)."""
 
-from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
+from core.config import BotConfig, SubjectConfig
 from models.settings import DayPlan, SettingsRepository, UserSettings
+from services import LernplanService
+from ui.messages import MessageBuilder
+
+TZ = ZoneInfo("Europe/Berlin")
 
 
-def test_professional_overview_formatting(tmp_path):
-    """Test that the professional overview has proper formatting elements."""
-    repo = SettingsRepository(tmp_path)
-
-    settings = UserSettings(
-        chat_id=123,
-        reminder_times=["08:00", "16:00"],
-        week_plan={
-            "montag": DayPlan("Mathematik", 30),
-            "mittwoch": DayPlan("Englisch", 45),
-        },
+def _make_config(**overrides) -> BotConfig:
+    defaults = dict(
+        telegram_token="test_token",
+        allowed_subjects=[
+            SubjectConfig(name="Mathe", emoji="🔢"),
+            SubjectConfig(name="Englisch", emoji="🇬🇧"),
+            SubjectConfig(name="Deutsch", emoji="📝"),
+        ],
     )
-    repo.save(settings)
-
-    with patch("bot.main.repo", repo):
-        with patch("bot.main.get_shared_chat_ids", return_value=[]):
-            from bot.main import build_weekly_overview
-
-            overview = build_weekly_overview(123)
-
-            # Check professional formatting elements
-            assert "📊 **WOCHENÜBERSICHT**" in overview
-            assert "```" in overview  # Code block for table
-            assert "┌─────────────┬─────────────┬────────┐" in overview  # Table border
-            assert "📈 **ZUSAMMENFASSUNG**" in overview
-            assert "⏰ **ERINNERUNGSZEITEN**" in overview
-
-            # Check emojis are used for days
-            assert "🔵" in overview or "🟢" in overview or "🟡" in overview
-
-            # Check time formatting improvements
-            assert "min" in overview
-            assert "📅 Geplante Tage:" in overview
+    defaults.update(overrides)
+    return BotConfig(**defaults)
 
 
-def test_time_display_with_hours(tmp_path):
-    """Test that long study times are displayed in hours and minutes."""
+def test_weekly_overview_formatting():
+    """Overview contains expected formatting elements."""
+    cfg = _make_config()
+    mb = MessageBuilder(cfg, TZ)
+
+    week_plan = {
+        "montag": DayPlan("Mathe", 30),
+        "mittwoch": DayPlan("Englisch", 45),
+    }
+    reminder_times = ["08:00", "16:00"]
+
+    overview = mb.build_weekly_overview(week_plan, reminder_times)
+
+    assert "📊 **WOCHENÜBERSICHT**" in overview
+    assert "📈 **ZUSAMMENFASSUNG**" in overview
+    assert "⏰ **ERINNERUNGSZEITEN**" in overview
+    assert "Montag" in overview
+    assert "Mathe" in overview
+    assert "30min" in overview
+    assert "Mittwoch" in overview
+    assert "Englisch" in overview
+    assert "45min" in overview
+    assert "08:00" in overview
+    assert "16:00" in overview
+    assert "2/7" in overview  # planned days
+
+
+def test_time_display_with_hours():
+    """Long study times are displayed in hours and minutes."""
+    cfg = _make_config()
+    mb = MessageBuilder(cfg, TZ)
+
+    week_plan = {
+        "montag": DayPlan("Mathe", 90),
+        "dienstag": DayPlan("Englisch", 120),
+        "mittwoch": DayPlan("Deutsch", 45),
+    }
+
+    overview = mb.build_weekly_overview(week_plan, ["09:00"])
+
+    # 90+120+45 = 255 = 4h 15min
+    assert "4h 15min" in overview
+
+
+def test_empty_week_display():
+    """Empty plan shows zero state."""
+    cfg = _make_config()
+    mb = MessageBuilder(cfg, TZ)
+
+    overview = mb.build_weekly_overview({}, [])
+
+    assert "0/7" in overview
+    assert "0 Minuten" in overview
+    assert "Keine Erinnerungszeiten" in overview
+
+
+def test_weekly_statistics_empty(tmp_path):
+    """Statistics with no history return zeros."""
     repo = SettingsRepository(tmp_path)
+    repo.save(UserSettings(chat_id=100))
 
-    settings = UserSettings(
-        chat_id=456,
-        reminder_times=["09:00"],
-        week_plan={
-            "montag": DayPlan("Mathe", 90),  # 1h 30min
-            "dienstag": DayPlan("Englisch", 120),  # 2h
-            "mittwoch": DayPlan("Deutsch", 45),  # 45min
-        },
-    )
-    repo.save(settings)
+    svc = LernplanService(repo, TZ)
+    stats = svc.get_weekly_statistics(100, days=7)
 
-    with patch("bot.main.repo", repo):
-        with patch("bot.main.get_shared_chat_ids", return_value=[]):
-            from bot.main import build_weekly_overview
-
-            overview = build_weekly_overview(456)
-
-            # Should show total time in hours and minutes format
-            # (90+120+45 = 255 minutes = 4h 15min)
-            assert "4h 15min" in overview
+    assert stats["total_minutes"] == 0
+    assert stats["days_learned"] == 0
+    assert stats["subject_minutes"] == {}
 
 
-def test_empty_week_display(tmp_path):
-    """Test display when no days are planned."""
+def test_weekly_statistics_with_history(tmp_path):
+    """Statistics count entries from learning_history."""
     repo = SettingsRepository(tmp_path)
+    from datetime import date, timedelta
 
-    settings = UserSettings(chat_id=789, reminder_times=[], week_plan={})
-    repo.save(settings)
+    today = date.today()
+    repo.save(UserSettings(
+        chat_id=100,
+        week_plan={"montag": DayPlan("Mathe", 30)},
+        learning_history=[
+            {
+                "date_iso": today.isoformat(),
+                "weekday": "montag",
+                "subject": "Mathe",
+                "planned_minutes": 30,
+                "source": "week_plan",
+                "learned_response": "yes",
+            },
+            {
+                "date_iso": (today - timedelta(days=1)).isoformat(),
+                "weekday": "sonntag",
+                "subject": "Englisch",
+                "planned_minutes": 45,
+                "source": "week_plan",
+                "learned_response": "yes",
+            },
+        ],
+    ))
 
-    with patch("bot.main.repo", repo):
-        with patch("bot.main.get_shared_chat_ids", return_value=[]):
-            from bot.main import build_weekly_overview
+    svc = LernplanService(repo, TZ)
+    stats = svc.get_weekly_statistics(100, days=7)
 
-            overview = build_weekly_overview(789)
-
-            # Check empty state is handled gracefully
-            assert "0/7" in overview
-            assert "0 Minuten" in overview
-            assert "Keine Erinnerungszeiten" in overview
-            assert "---" in overview  # For unset days
+    assert stats["total_minutes"] == 75
+    assert stats["days_learned"] == 2
+    assert stats["subject_minutes"]["Mathe"] == 30
+    assert stats["subject_minutes"]["Englisch"] == 45
 
 
-def test_interactive_menu_structure(tmp_path):
-    """Test the interactive menu has proper button layout."""
+def test_weekly_statistics_excludes_no_response(tmp_path):
+    """Entries with 'no' response and not completed are excluded."""
     repo = SettingsRepository(tmp_path)
+    from datetime import date
 
-    settings = UserSettings(
-        chat_id=123,
-        week_plan={
-            "montag": DayPlan("Mathe", 30),
-            "mittwoch": DayPlan("Englisch", 45),
-        },
-    )
-    repo.save(settings)
+    today = date.today()
+    repo.save(UserSettings(
+        chat_id=200,
+        learning_history=[
+            {
+                "date_iso": today.isoformat(),
+                "subject": "Mathe",
+                "planned_minutes": 30,
+                "learned_response": "no",
+                "completed": False,
+            },
+        ],
+    ))
 
-    with patch("bot.main.repo", repo):
-        with patch("bot.main.get_shared_chat_ids", return_value=[]):
-            from bot.main import build_overview_menu
+    svc = LernplanService(repo, TZ)
+    stats = svc.get_weekly_statistics(200, days=7)
 
-            menu = build_overview_menu(123)
-
-            # Should have multiple rows
-            assert len(menu.inline_keyboard) >= 3
-
-            # First two rows should be weekday buttons
-            weekday_buttons = menu.inline_keyboard[0] + menu.inline_keyboard[1]
-            assert len(weekday_buttons) == 7  # All 7 days
-
-            # Check that planned days have different buttons than unplanned
-            button_texts = [btn.text for btn in weekday_buttons]
-            planned_buttons = [btn for btn in button_texts if "🟦" in btn or "🟨" in btn]
-            unplanned_buttons = [btn for btn in button_texts if "➕" in btn]
-
-            # Should have some of each type
-            assert len(planned_buttons) > 0
-            assert len(unplanned_buttons) > 0
-
-            # Last row should have control buttons
-            control_row = menu.inline_keyboard[-1]
-            control_texts = [btn.text for btn in control_row]
-            assert any("Aktualisieren" in text for text in control_texts)
-            assert any("Zurück" in text for text in control_texts)
+    assert stats["total_minutes"] == 0
 
 
-def test_reminder_time_icons(tmp_path):
-    """Test that reminder times get appropriate time-of-day icons."""
-    repo = SettingsRepository(tmp_path)
+def test_statistics_message_builder():
+    """Statistics message builder produces readable output."""
+    cfg = _make_config()
+    mb = MessageBuilder(cfg, TZ)
 
-    settings = UserSettings(
-        chat_id=123,
-        reminder_times=["07:00", "12:00", "18:00", "22:00"],
-        week_plan={"montag": DayPlan("Test", 30)},
-    )
-    repo.save(settings)
+    stats = {
+        "total_minutes": 120,
+        "subject_minutes": {"Mathe": 75, "Englisch": 45},
+        "days_learned": 3,
+        "start_date": "21.02.2026",
+        "end_date": "27.02.2026",
+        "days": 7,
+    }
+    text = mb.build_weekly_statistics(stats)
 
-    with patch("bot.main.repo", repo):
-        with patch("bot.main.get_shared_chat_ids", return_value=[]):
-            from bot.main import build_weekly_overview
+    assert "WOCHEN-STATISTIK" in text
+    assert "2h" in text  # 120 min = 2h
+    assert "Mathe" in text
+    assert "Englisch" in text
+    assert "3/7" in text  # days learned
 
-            overview = build_weekly_overview(123)
 
-            # Should have time-appropriate icons
-            assert "🌅" in overview  # Early morning (07:00)
-            assert "☀️" in overview or "🌤️" in overview  # Noon/afternoon (12:00)
-            assert "🌆" in overview  # Evening (18:00)
-            assert "🌙" in overview  # Night (22:00)
+def test_reminder_time_icon():
+    """Time icons match time of day."""
+    cfg = _make_config()
+    mb = MessageBuilder(cfg, TZ)
+
+    assert "🌅" == mb.reminder_time_icon("07:00")
+    assert "☀️" == mb.reminder_time_icon("12:00")
+    assert "🌆" == mb.reminder_time_icon("18:00")
+    assert "🌙" == mb.reminder_time_icon("22:00")

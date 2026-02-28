@@ -1,100 +1,87 @@
-# Changes Made for Issue: Shared Reminder Times and Weekly Overview
+# Changelog
 
-## Problem Statement (German)
-- Die Erinnerungszeiten sollen für Schüler und Elternteil identisch sein, egal, wer die Zeit für die Erinnerung festgelegt hat.
-- Zusätzlich man über das Menü noch eine Wochenübersicht erhalten, welches Fach aktuell mit welcher Zeit für welchen Tag festgelegt ist bzw. wo noch gar nix festgelegt ist.
+## v2.0.0 — Architektur-Refactoring (2026-02-27)
 
-## Translation
-- Reminder times should be identical for student and parent, regardless of who set the reminder time.
-- Additionally, one should be able to get a weekly overview through the menu showing which subject with which time is set for which day, or where nothing is set yet.
+Vollständige Überarbeitung der Codebasis basierend auf dem Projekt-Audit (`PROJEKT_AUDIT_UND_KONZEPT.md`). Umsetzung aller kritischen Befunde aus Kapitel 2.3.
 
-## Changes Implemented
+### Architektur
 
-### 1. Shared Reminder Times Functionality
+- **BotContext Dataclass** statt flacher Modul-Globaler. Alle Abhängigkeiten (Config, Repo, Service, Keyboards, Messages) gebündelt in `application.bot_data["ctx"]`, abrufbar per `get_ctx(context)`.
+- **Service Layer** (`services/__init__.py`): Neue `LernplanService`-Klasse kapselt gesamte Business Logic (Sync, Reminder, History, Statistik). Handler rufen nur noch Service-Methoden auf statt direkt auf Repo zu schreiben.
+- **UI-Module** aufgeteilt:
+  - `ui/keyboards.py` — `KeyboardBuilder` für alle Telegram-Keyboards
+  - `ui/messages.py` — `MessageBuilder` für alle Textformatierungen
+- **Pydantic-Konfiguration** (`core/config.py`): `BotConfig` und `SubjectConfig` mit Validierung. Lädt aus `userconfig/bot_config.json` mit Env-Var-Override.
+- **Legacy-Code entfernt**: Altes monolithisches `main.py` (1116 Zeilen) durch modulare Architektur ersetzt.
 
-**Files Modified:**
-- `src/bot/main.py`
+### Neue Features
 
-**New Functions Added:**
-- `get_shared_chat_ids()`: Returns list of chat IDs that should share reminder times (PARENT_CHAT_ID and STUDENT_CHAT_ID)
-- `sync_reminder_times(new_times)`: Synchronizes reminder times across all shared chat IDs
-- `get_shared_reminder_times()`: Gets the current shared reminder times (prioritizes student settings)
+- **⏰ Zeiten verwalten**: Grafischer Stunden-/Minutenpicker (Inline-Keyboards) statt Texteingabe. Bis zu 3 Erinnerungszeiten, synchron zwischen Schüler und Eltern.
+- **📈 Wochen-Statistik**: Neues `learning_history`-Feld in `UserSettings`. Tägliche Antworten (Ja/Nein) werden dauerhaft archiviert. `get_weekly_statistics()` liest aus der Historie statt aus dem täglich gelöschten `daily_dynamic_plan`.
+- **📊 Wochenübersicht**: Erweiterte Darstellung mit Farbcodes, Tages-Indikatoren, Gesamtzeit in h/min.
+- **Wochen-Statistik Menü**: Neuer Button `📈 Wochen-Statistik` im Hauptmenü mit Fächeraufschlüsselung und Balkendiagramm.
 
-**Modified Functions:**
-- `zeiten_cmd()`: Now uses shared reminder times for parent/student chats
-- `addzeit_cmd()`: Now synchronizes time additions across shared chats
-- `delzeit_cmd()`: Now synchronizes time deletions across shared chats
-- `build_times_menu()`: Updated to work with chat_id parameter instead of settings object
-- `handle_callback()`: Updated to handle shared reminder times in menu interactions
-- `handle_free_text()`: Updated to sync reminder times when adding via menu
+### Stabilität & Sicherheit
 
-### 2. Weekly Overview Menu Functionality
+- **Atomare JSON-Writes**: `SettingsRepository.save()` schreibt via `tempfile.mkstemp()` + `os.replace()` — kein Datenverlust bei Crash/Stromausfall.
+- **Echter Health Check**: `src/healthcheck.py` prüft: Config ladbar, Data-Dir schreibbar, Telegram-API erreichbar (HTTP HEAD mit 5s Timeout).
+- **Multi-Stage Docker Build**: Builder + Production Stage, Non-Root-User `botuser` (UID 1000), separate Volumes für `data/` und `userconfig/`.
+- **Korrupte Datei bereinigt**: `data/user_67207672070553605536.json` entfernt.
 
-**Files Modified:**
-- `src/bot/main.py`
+### Dependency-Änderungen
 
-**New Functions Added:**
-- `build_weekly_overview(chat_id)`: Creates a formatted text showing the complete weekly plan and reminder times
-- `build_overview_menu()`: Creates the inline keyboard for the weekly overview
+- **Entfernt**: `pytz` — ersetzt durch `zoneinfo` (Stdlib ab Python 3.9)
+- **Hinzugefügt**: `pydantic==2.8.2` — Konfigurationsvalidierung
 
-**Modified Functions:**
-- `build_main_menu()`: Added new "📊 Wochenübersicht" menu option
-- `handle_callback()`: Added handler for "menu_overview" callback
+### Konfiguration
 
-**Menu Structure:**
-The main menu now includes:
-- ⏰ Zeiten verwalten (existing)
-- 📅 Wochenplan bearbeiten (existing)
-- 📊 Wochenübersicht (NEW)
-- 🔄 Schließen (existing)
+- **Neue Methode**: `userconfig/bot_config.json` (im Container gemountet) statt `.env`-Datei.
+- **Env-Var-Override**: `TELEGRAM_TOKEN`, `STUDENT_CHAT_ID`, `PARENT_CHAT_ID`, `TIMEZONE`, `LOG_LEVEL`, `DATA_DIR` überschreiben JSON-Werte.
+- **Neue Config-Felder**: `allowed_subjects`, `dynamic_planning_times`, `duration_choices`, `max_reminder_times`, `morning_prompt_time`, `daily_check_time`, `jokers_per_week`, `horse_happy_images`, `sad_gifs`.
 
-### 3. Weekly Overview Display Format
-The weekly overview shows:
-- Header: "📊 **Wochenübersicht**"
-- Each day with either:
-  - "**Montag:** Mathe (30 Min)" for configured days
-  - "**Dienstag:** _(nicht festgelegt)_" for unconfigured days
-- Footer showing current reminder times
-- Back button to return to main menu
+### Tests
 
-### 4. Testing
-**New Test File:**
-- `tests/test_shared_functionality.py`
+- **Komplett migriert**: Alte Tests, die über Monkey-Patching `bot.main`-Globals testeten, durch neue Tests gegen `LernplanService` und `MessageBuilder` ersetzt.
+- **29 Tests** in 3 Dateien:
+  - `test_config.py` — BotConfig Validierung, SubjectConfig, load_config (JSON/Env)
+  - `test_shared_functionality.py` — Reminder Sync, Week Plan Sync, History Persistenz
+  - `test_weekly_overview_improvements.py` — Statistik, Messages, Zeitformatierung
 
-**Tests Added:**
-- `test_sync_reminder_times()`: Tests that reminder times sync correctly across chats
-- `test_build_weekly_overview_basic()`: Tests weekly overview generation
-- `test_user_settings_roundtrip_basic()`: Ensures existing functionality still works
+### Dateistruktur (vorher → nachher)
 
-## Behavior Changes
+| Vorher | Nachher | Änderung |
+| :--- | :--- | :--- |
+| `src/bot/main.py` (1116 Zeilen, monolithisch) | `src/bot/main.py` (907 Zeilen, modular) | Komplett neu geschrieben |
+| — | `src/core/config.py` | Neu erstellt |
+| — | `src/services/__init__.py` | Neu erstellt |
+| — | `src/ui/keyboards.py` | Neu erstellt |
+| — | `src/ui/messages.py` | Neu erstellt |
+| — | `src/healthcheck.py` | Neu erstellt |
+| `src/models/settings.py` | `src/models/settings.py` | `learning_history` + atomare Writes |
+| `Dockerfile` (einzel-stage) | `Dockerfile` (multi-stage) | Security + Optimierung |
+| `docker-compose.yml` (kein healthcheck) | `docker-compose.yml` | Healthcheck + userconfig Volume |
+| `pyproject.toml` (pytz) | `pyproject.toml` | pytz entfernt, pydantic hinzugefügt |
 
-### For Student and Parent Users:
+---
 
-1. **Reminder Time Management:**
-   - When either student or parent adds/removes reminder times, the change applies to both
-   - Both users will see identical reminder times in their menus
-   - Both users will receive reminders at the same times
+## v1.x — Initiale Releases
 
-2. **Weekly Overview:**
-   - New menu option accessible to all users
-   - Shows complete weekly plan with subjects and minutes
-   - Shows current reminder times
-   - Clearly indicates days without plans
+### v1.2 — Shared Reminder Times & Weekly Overview
 
-### For Other Users:
-- Non-student/parent users continue to have independent reminder times
-- All users can access the weekly overview feature
+- Erinnerungszeiten synchron zwischen Schüler und Eltern
+- Wochenübersicht als Menü-Option
+- Neue Tests für geteilte Funktionalität
 
-## Technical Implementation Details
+### v1.1 — Daily Reminder & Voice Forwarding
 
-- Uses environment variables `STUDENT_CHAT_ID` and `PARENT_CHAT_ID` to identify shared accounts
-- Reminder time synchronization happens immediately when times are modified
-- Weekly overview prioritizes student settings for display (falls back to parent if student not configured)
-- All existing functionality remains unchanged for users not configured as student/parent
-- Maintains backward compatibility with existing data structures
+- Morning Prompt um 07:30
+- 20:00-Uhr Tagescheck mit Ja/Nein
+- Sprachnachrichten-Weiterleitung an Eltern
+- Joker-System (1× pro Woche)
 
-## Files Changed
-- `src/bot/main.py`: Major changes for shared functionality and weekly overview
-- `src/models/settings.py`: Minor formatting fixes from linter
-- `tests/test_shared_functionality.py`: New test file
-- `tests/test_time_validation.py`: Minor formatting fixes from linter
+### v1.0 — Initial Release
+
+- Grundlegende Bot-Funktionalität
+- Wochenplan-Verwaltung
+- JSON-Persistenz
+- Docker-Deployment

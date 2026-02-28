@@ -1,78 +1,199 @@
-## Architekturübersicht — LernplanReminderBot_v2
+## Architekturübersicht — LernplanReminderBot v2
 
-Unten sind zwei Darstellungen: ein Komponenten‑Diagramm (Mermaid) und ein Sequenzdiagramm für einen typischen Ablauf.
+### Modulstruktur
 
----
+```
+src/
+├── bot/
+│   └── main.py              # Entrypoint, Handler, BotContext, Scheduler
+├── core/
+│   ├── config.py            # Pydantic-basierte Konfiguration (JSON + Env)
+│   └── logging_config.py    # Logging Setup
+├── models/
+│   └── settings.py          # UserSettings, DayPlan, SettingsRepository
+├── services/
+│   └── __init__.py          # LernplanService (Business Logic)
+├── ui/
+│   ├── keyboards.py         # KeyboardBuilder (alle Telegram-Keyboards)
+│   └── messages.py          # MessageBuilder (Textformatierung)
+└── healthcheck.py           # Docker HEALTHCHECK Script
 
-### Komponenten (Mermaid)
+tests/
+├── test_config.py           # BotConfig Validierung & load_config
+├── test_shared_functionality.py  # Service-Layer: Reminder, Sync, History
+└── test_weekly_overview_improvements.py  # Messages, Statistik, UI
 
-```mermaid
-flowchart TD
-  User["Parent / Student (Telegram)"]
-  TelegramAPI["Telegram API"]
-  BotApp["LernplanReminderBot_v2\n(src/bot/main.py)"]
-  Handlers["Command & Callback Handlers\n/start /menu /addzeit /plan ..."]
-  Scheduler["JobQueue / APScheduler\n(scheduling, 20:00-Query, reminders)"]
-  Repo["SettingsRepository\n(src/models/settings.py)\ndata/user_<chat_id>.json"]
-  Media["Horse images / GIFs"]
-  Docker["Deployment (.env, Docker / GHCR)"]
-
-  User -->|Messages / Button| TelegramAPI --> BotApp
-  BotApp --> Handlers
-  Handlers -->|load/save| Repo
-  Handlers -->|update schedule| Scheduler
-  Scheduler -->|trigger jobs| BotApp
-  BotApp -->|send messages| TelegramAPI --> User
-  BotApp --> Media
-  Docker -->|env: TELEGRAM_TOKEN, PARENT_CHAT_ID, STUDENT_CHAT_ID| BotApp
-  Repo -->|persist| Docker
+data/                        # Persistente JSON-Dateien (user_<chat_id>.json)
+userconfig/
+└── bot_config.json          # Konfiguration (im Container gemountet)
 ```
 
 ---
 
-### Sequenzdiagramm (Mermaid) — Beispiel: Nutzer fügt eine Erinnerungszeit hinzu
+### Schichtenarchitektur
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Telegram API                                           │
+└────────┬────────────────────────────────────────────────┘
+         │
+┌────────▼────────────────────────────────────────────────┐
+│  bot/main.py                                            │
+│  ┌─────────────┐  ┌───────────────┐  ┌───────────────┐ │
+│  │ Handlers    │  │ BotContext    │  │ Scheduler     │ │
+│  │ (Commands,  │  │ (Dataclass)  │  │ (APScheduler  │ │
+│  │  Callbacks, │  │              │  │  JobQueue)    │ │
+│  │  Text/Voice)│  │              │  │              │ │
+│  └──────┬──────┘  └──────┬───────┘  └──────────────┘ │
+└─────────┼────────────────┼──────────────────────────────┘
+          │                │
+          │   ┌────────────▼────────────┐
+          │   │ BotContext hält:        │
+          │   │ • config: BotConfig     │
+          │   │ • repo: SettingsRepo    │
+          │   │ • service: LernplanSvc  │
+          │   │ • keyboards: KBBuilder  │
+          │   │ • messages: MsgBuilder  │
+          │   └────────────┬────────────┘
+          │                │
+┌─────────▼────────────────▼──────────────────────────────┐
+│  services/__init__.py — LernplanService                 │
+│  (Business Logic: Sync, Reminder, History, Statistics)  │
+└────────┬────────────────────────────────────────────────┘
+         │
+┌────────▼────────────────────────────────────────────────┐
+│  models/settings.py — SettingsRepository                │
+│  (Atomare JSON-Persistenz: tempfile + os.replace)       │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Komponenten-Diagramm (Mermaid)
+
+```mermaid
+flowchart TD
+  User["Parent / Student\n(Telegram App)"]
+  TelegramAPI["Telegram Bot API"]
+  BotApp["bot/main.py\nBotContext + Handler"]
+  Config["core/config.py\nBotConfig (Pydantic)\nJSON + Env Vars"]
+  Service["services/\nLernplanService\n(Sync, History, Stats)"]
+  UI_KB["ui/keyboards.py\nKeyboardBuilder"]
+  UI_MSG["ui/messages.py\nMessageBuilder"]
+  Repo["models/settings.py\nSettingsRepository\n(Atomare JSON-Writes)"]
+  Scheduler["APScheduler JobQueue\n(Morning, DailyCheck,\nWeekly, Dynamic)"]
+  Health["healthcheck.py\n(Config + Data + API)"]
+  Docker["Docker Container\n(Multi-Stage, Non-Root)"]
+  Data["data/user_*.json"]
+  UserConfig["userconfig/bot_config.json"]
+
+  User -->|Messages / Buttons| TelegramAPI --> BotApp
+  BotApp --> Service
+  BotApp --> UI_KB
+  BotApp --> UI_MSG
+  Service --> Repo
+  Repo --> Data
+  Config --> UserConfig
+  BotApp --> Config
+  BotApp --> Scheduler
+  Scheduler -->|Jobs auslösen| BotApp
+  BotApp -->|Nachrichten senden| TelegramAPI --> User
+  Docker --> BotApp
+  Docker --> Health
+  Health --> Config
+  Health --> Data
+```
+
+---
+
+### Sequenzdiagramm — Erinnerungszeit hinzufügen
 
 ```mermaid
 sequenceDiagram
   autonumber
   participant U as User (Telegram)
   participant T as Telegram API
-  participant B as BotApp (`src/bot/main.py`)
-  participant H as Handlers (commands/callbacks)
-  participant R as Repo (JSON files)
-  participant S as Scheduler (JobQueue)
+  participant B as bot/main.py
+  participant S as LernplanService
+  participant R as SettingsRepository
 
-  U->>T: Klick /send message `/addzeit 08:00` oder Button
-  T->>B: Update (Webhook/LongPoll)
-  B->>H: CommandHandler (/addzeit)
-  H->>R: load(chat_id)
-  R-->>H: UserSettings
-  H-->>R: save(updated reminder_times)
-  R-->>H: ok
-  H->>S: schedule_all_reminders() (aktualisiert Jobs)
-  S-->>B: Job geplant
-  H->>T: Antwort: "Zeit hinzugefügt"
-  T-->>U: Nachricht angezeigt
+  U->>T: Klick "⏰ Zeiten verwalten"
+  T->>B: CallbackQuery "menu_times"
+  B->>S: get_shared_reminder_times()
+  S->>R: load(chat_id)
+  R-->>S: UserSettings
+  S-->>B: aktuelle Zeiten
+  B->>T: Zeiten-Menü anzeigen
+  T-->>U: Menü mit Zeiten + "➕ Hinzufügen"
 
-  Note over S,B: Später — Trigger durch Scheduler
-  S->>B: reminder job fires
-  B->>T: send reminder message
-  T->>U: Reminder arrives
+  U->>T: Klick "➕ Hinzufügen"
+  T->>B: CallbackQuery "add_time"
+  B->>T: Stundenpicker (0–23)
+  T-->>U: Stunden-Grid
+
+  U->>T: Klick "14"
+  T->>B: CallbackQuery "pick_hour_14"
+  B->>T: Minutenpicker (00–55)
+  T-->>U: Minuten-Grid
+
+  U->>T: Klick "30"
+  T->>B: CallbackQuery "pick_minute_14_30"
+  B->>S: add_reminder_time(chat_id, "14:30", ...)
+  S->>R: load + save (beide User)
+  R-->>S: ok
+  S-->>B: (True, "✅ Erinnerung um 14:30 hinzugefügt.")
+  B->>B: schedule_all_reminders()
+  B->>T: Aktualisiertes Zeiten-Menü
+  T-->>U: Menü zeigt 14:30
 ```
 
 ---
 
-Kurz (Datei‑/Modulzuordnung)
-- `src/bot/main.py` – Bot‑Entrypoint, Handler, UI‑Logik, Message Builder, Scheduler‑Integration
-- `src/models/settings.py` – `UserSettings`, `DayPlan`, `SettingsRepository` (JSON‑Persistenz)
-- `src/core/logging_config.py` – Logging Setup
-- `data/` – Persistente JSON Dateien (`user_<chat_id>.json`)
-- `pyproject.toml` – Abhängigkeiten (python-telegram-bot, APScheduler, python-dotenv)
+### Sequenzdiagramm — 20-Uhr Tagescheck
 
-Deployment‑Hinweis
-- Konfiguration via `.env` (z. B. `TELEGRAM_TOKEN`, `PARENT_CHAT_ID`, `STUDENT_CHAT_ID`, `DATA_DIR`).
-- Docker / docker-compose für Headless Betrieb; mount von `data/` für Persistenz.
+```mermaid
+sequenceDiagram
+  autonumber
+  participant Sched as APScheduler
+  participant B as bot/main.py
+  participant S as LernplanService
+  participant R as SettingsRepository
+  participant T as Telegram API
+  participant Student as Schüler
+  participant Parent as Eltern
+
+  Sched->>B: daily_check() um 20:00
+  B->>R: load(student_chat_id)
+  R-->>B: UserSettings
+  B->>T: "Hast du heute gelernt?" + Ja/Nein Keyboard
+  T-->>Student: Frage angezeigt
+  B->>T: Info an Eltern: "20-Uhr-Abfrage gesendet"
+  T-->>Parent: Info-Nachricht
+
+  Student->>T: Klick "Ja ✅"
+  T->>B: CallbackQuery "learned_yes"
+  B->>S: archive_daily_to_history(chat_id, "yes")
+  S->>R: load → append learning_history → save
+  B->>T: Motivationsbild 🐴🎉
+  T-->>Student: Bild angezeigt
+  B->>T: Kommentar-Frage
+  T-->>Student: "Möchtest du noch was sagen?"
+  B->>T: Info an Eltern: "JA gelernt ✅"
+  T-->>Parent: Antwort angezeigt
+```
 
 ---
 
-Wenn du willst, lege ich diese Datei als `ARCHITECTURE.md` ab (erledigt) und kann zusätzlich ein Sequence‑Diagramm für die 20:00‑Abfrage oder das Merge‑/Sync‑Verhalten zwischen Eltern/Schüler erzeugen.
+### Schlüssel-Designentscheidungen
+
+| Entscheidung | Begründung |
+| :--- | :--- |
+| **BotContext Dataclass** statt globaler Variablen | Testbarkeit, kein verstreuter State, klare Abhängigkeiten |
+| **LernplanService** als eigene Schicht | Business Logic von Handler-Code getrennt; testbar ohne Telegram-Mocking |
+| **Pydantic BotConfig** mit JSON + Env-Override | Typsichere Validierung, flexible Konfiguration für Docker + lokale Entwicklung |
+| **Atomare JSON-Writes** (`tempfile` + `os.replace`) | Kein Datenverlust bei Crash/Stromausfall während des Schreibens |
+| **`learning_history`** Feld in UserSettings | Statistik überlebt das tägliche Löschen des `daily_dynamic_plan` |
+| **Shared State** zwischen Student + Parent | Erinnerungszeiten und Wochenpläne sind immer synchron |
+| **Multi-Stage Docker Build** + Non-Root User | Kleineres Image, Security Best Practice |
+| **`zoneinfo`** statt `pytz` | Stdlib ab Python 3.9, kein Extra-Dependency |
+| **Grafischer Stunden-/Minutenpicker** | Benutzerfreundlicher als Texteingabe "/addzeit HH:MM" |

@@ -1,127 +1,194 @@
 # Debugging Daily Reminder Issues
 
-This document explains how to debug and troubleshoot the daily 20:00 reminder functionality.
+Dieses Dokument erklärt, wie man Probleme mit der täglichen 20:00-Uhr-Erinnerung debuggt.
 
-## Overview
+## Überblick
 
-The daily reminder system consists of:
-1. **Daily Check Job**: Scheduled to run at 20:00 every day
-2. **Student Question**: Sends "Hast du heute auch gelernt?" to the student
-3. **Parent Notification**: Informs parent that question was sent
-4. **Response Handling**: Processes student's yes/no answer
-5. **Parent Feedback**: Sends student's response to parent
+Das tägliche Check-ins System besteht aus:
 
-## Common Issues & Solutions
+1. **Morning Prompt** (configurable, default 07:30) — Fragt: "Wie sieht dein Plan heute aus?"
+2. **Dynamische Erinnerungen** — Zur gewählten Uhrzeit wird erinnert
+3. **Daily Check** (configurable, default 20:00) — Fragt: "Hast du heute gelernt?"
+4. **Antwort-Handling** — Ja/Nein → Archivierung in `learning_history`
+5. **Eltern-Benachrichtigung** — Parent erhält Antwort und Tagesreport
+6. **Weekly Summary** (Sonntag 21:00) — Statistik der Woche
 
-### 1. Daily Reminder Not Sent
+## Architektur-Kontext
 
-**Symptoms**: No 20:00 reminder is sent to the student.
+Alle Jobs laufen über `APScheduler`/`JobQueue` und nutzen den `BotContext` aus `application.bot_data["ctx"]`:
 
-**Check**: Look for these log messages:
 ```
-daily_check: Starting 20:00 daily check
-daily_check: STUDENT_CHAT_ID not set - skipping daily check
+BotContext
+├── config        → BotConfig (student_chat_id, parent_chat_id, daily_check_time, ...)
+├── service       → LernplanService (archive_daily_to_history, get_weekly_statistics, ...)
+├── repo          → SettingsRepository (load, save — atomare JSON-Writes)
+├── keyboards     → KeyboardBuilder
+└── messages      → MessageBuilder
 ```
 
-**Solution**: Ensure `STUDENT_CHAT_ID` is properly set in your `.env` file:
+## Häufige Probleme & Lösungen
+
+### 1. Daily Reminder wird nicht gesendet
+
+**Symptome**: Um 20:00 passiert nichts.
+
+**Prüfen:**
+
 ```bash
-STUDENT_CHAT_ID=123456789  # Replace with actual student chat ID
+docker logs lernplan-reminder-bot-v2 | grep -i "daily_check\|schedule"
 ```
 
-### 2. Parent Not Receiving Notifications
+**Mögliche Ursachen:**
 
-**Symptoms**: Student gets the question but parent doesn't get notifications.
+| Log-Meldung | Ursache | Lösung |
+| :--- | :--- | :--- |
+| `Student chat ID not configured` | `student_chat_id` fehlt | In `bot_config.json` eintragen |
+| `Scheduled daily check at 20:00` fehlt | Bot wurde nach 20:00 gestartet | Neustart vor 20:00 oder `/testdaily` |
+| Kein Log zum Zeitpunkt | Container war gestoppt | `docker ps` → Uptime prüfen |
 
-**Check**: Look for these log messages:
-```
-daily_check: No parent notification (PARENT_CHAT_ID not set or same as student)
-```
+**Lösung:**
 
-**Solution**: Ensure `PARENT_CHAT_ID` is properly set and different from `STUDENT_CHAT_ID`:
 ```bash
-PARENT_CHAT_ID=987654321   # Replace with actual parent chat ID
-STUDENT_CHAT_ID=123456789  # Must be different from parent
+# Prüfe Konfiguration:
+docker exec lernplan-reminder-bot-v2 cat /app/userconfig/bot_config.json | grep student_chat_id
 ```
 
-### 3. Response Callbacks Not Working
+### 2. Eltern erhalten keine Benachrichtigung
 
-**Symptoms**: Student can't click yes/no buttons, or parent doesn't get response.
+**Symptome**: Schüler bekommt die Frage, Eltern bekommen nichts.
 
-**Check**: Look for these log messages:
+**Prüfen:**
+
+```bash
+docker logs lernplan-reminder-bot-v2 | grep -i "parent"
 ```
-on_learned_response: Received callback 'learned_yes' from chat 123456789
-on_learned_response: Sent 'YES' notification to parent 987654321
+
+| Log-Meldung | Bedeutung |
+| :--- | :--- |
+| `PARENT_CHAT_ID not set` oder `parent_chat_id: null` | Nicht konfiguriert |
+| `parent notifications disabled` | Warning beim Start |
+
+**Lösung:**
+
+In `userconfig/bot_config.json`:
+```json
+{
+  "parent_chat_id": 987654321
+}
 ```
 
-**Solution**: Verify callback handlers are registered and environment variables are correct.
+Container neu starten.
 
-## Manual Testing
+### 3. Antwort-Buttons (Ja/Nein) funktionieren nicht
 
-### Test Daily Check Function
+**Symptome**: Schüler kann Buttons klicken, aber nichts passiert.
 
-Use the new `/testdaily` command to manually trigger the daily check:
+**Prüfen:**
 
-1. Send `/testdaily` to the bot
-2. Check logs for detailed execution information
-3. Verify student receives the question
-4. Verify parent receives notification
+```bash
+docker logs lernplan-reminder-bot-v2 | grep "on_learned_response"
+```
 
-### Test Response Handling
+**Erwartete Logs:**
 
-1. Trigger daily check with `/testdaily`
-2. Click "Ja ✅" or "Nein ❌" buttons
-3. Check logs for callback processing
-4. Verify parent receives student's response
+```
+on_learned_response: 'learned_yes' from chat 123456789
+```
 
-## Log Messages Reference
+Wenn kein Log erscheint: Handler nicht registriert → Bot neu bauen und deployen.
+
+### 4. Statistik bleibt leer
+
+**Symptome**: `📈 Wochen-Statistik` zeigt "Keine abgeschlossenen Lerneinheiten".
+
+**Ursache**: `archive_daily_to_history()` wird erst aufgerufen, wenn der Schüler auf Ja/Nein klickt. Wenn die Frage nie beantwortet wird, wird nichts archiviert.
+
+**Prüfen:**
+
+```bash
+# Direkt in die User-Datei schauen:
+docker exec lernplan-reminder-bot-v2 cat /app/data/user_123456789.json | python -m json.tool | grep -A5 learning_history
+```
+
+**Lösung**: Mindestens 1× den 20-Uhr-Check beantworten. Oder manuell testen mit `/testdaily`.
+
+## Manuelles Testen
+
+### Daily Check manuell auslösen
+
+```
+/testdaily
+```
+
+Dieser Befehl ruft `daily_check()` direkt auf:
+1. Schüler erhält die "Hast du gelernt?"-Frage mit Ja/Nein-Buttons
+2. Eltern erhalten Info, dass die Frage gesendet wurde
+3. Auf Ja/Nein-Klick wird `archive_daily_to_history()` aufgerufen
+
+### Erinnerungsnachricht testen
+
+```
+/test
+```
+
+Zeigt die Erinnerungsnachricht für heute (basierend auf Wochenplan + dynamische Einträge).
+
+## Log-Referenz
+
+### Scheduling-Logs (beim Start)
+
+| Nachricht | Bedeutung |
+| :--- | :--- |
+| `Scheduled morning prompt at 07:30` | Morgen-Job geplant |
+| `Scheduled daily check at 20:00` | Tagescheck geplant |
+| `Scheduled weekly summary for Sundays 21:00` | Wochenstatistik geplant |
+| `Student chat ID not configured — skipping system jobs` | Kein Student konfiguriert |
 
 ### Daily Check Logs
 
-| Message | Meaning |
-|---------|---------|
-| `daily_check: Starting 20:00 daily check` | Function started successfully |
-| `daily_check: STUDENT_CHAT_ID not set - skipping daily check` | Missing configuration |
-| `daily_check: Successfully sent question to student X` | Question sent to student |
-| `daily_check: Successfully sent info to parent X` | Parent notification sent |
-| `daily_check: Error during daily check: ...` | Error occurred |
+| Nachricht | Bedeutung |
+| :--- | :--- |
+| `daily_check: Starting...` | Funktion ausgelöst |
+| `daily_check: Error...` | Fehler aufgetreten |
 
-### Response Handler Logs
+### Learned Response Logs
 
-| Message | Meaning |
-|---------|---------|
-| `on_learned_response: Received callback 'learned_yes'` | Student clicked yes |
-| `on_learned_response: Received callback 'learned_no'` | Student clicked no |
-| `on_learned_response: Sent 'YES' notification to parent` | Parent notified of yes |
-| `on_learned_response: Sent 'NO' notification to parent` | Parent notified of no |
+| Nachricht | Bedeutung |
+| :--- | :--- |
+| `on_learned_response: 'learned_yes' from chat X` | Schüler hat "Ja" geklickt |
+| `on_learned_response: 'learned_no' from chat X` | Schüler hat "Nein" geklickt |
 
-### Scheduling Logs
+### Archive Logs
 
-| Message | Meaning |
-|---------|---------|
-| `schedule_all_reminders: Scheduled daily_check at 20:00` | Daily job scheduled |
-| `schedule_all_reminders: STUDENT_CHAT_ID = X` | Shows current configuration |
-| `schedule_all_reminders: PARENT_CHAT_ID = X` | Shows current configuration |
+| Nachricht | Bedeutung |
+| :--- | :--- |
+| `Archived N entries to history for chat X` | N Einträge in learning_history gespeichert |
 
-## Configuration Checklist
+## Datenstruktur
 
-- [ ] `TELEGRAM_TOKEN` is set and valid
-- [ ] `STUDENT_CHAT_ID` is set to student's chat ID (not 0)
-- [ ] `PARENT_CHAT_ID` is set to parent's chat ID (not 0)
-- [ ] `STUDENT_CHAT_ID` ≠ `PARENT_CHAT_ID` (must be different)
-- [ ] Both users have started the bot with `/start`
-- [ ] Bot has permissions to send messages to both chats
+Die `learning_history` eines Users sieht so aus (in `data/user_<id>.json`):
 
-## Advanced Debugging
+```json
+{
+  "learning_history": [
+    {
+      "date_iso": "2026-02-27",
+      "weekday": "freitag",
+      "subject": "Mathe",
+      "planned_minutes": 30,
+      "source": "week_plan",
+      "learned_response": "yes",
+      "timestamp": "2026-02-27T20:01:23+01:00"
+    }
+  ]
+}
+```
 
-1. **Check Job Queue**: The daily check is scheduled as a job named `daily_check_20`
-2. **Timezone**: Jobs run in `Europe/Berlin` timezone
-3. **Error Handling**: All errors are logged with full stack traces
-4. **Manual Testing**: Use `/testdaily` command for immediate testing
-
-## Getting Help
-
-If issues persist:
-1. Check bot logs for detailed error messages
-2. Verify all environment variables are set correctly
-3. Test with `/testdaily` command
-4. Ensure both student and parent have interacted with the bot via `/start`
+Felder:
+- `date_iso` — Datum im ISO-Format
+- `weekday` — Wochentag (deutsch, lowercase)
+- `subject` — Fach
+- `planned_minutes` — Geplante Minuten (aus Wochenplan)
+- `source` — `"week_plan"` oder `"dynamic"`
+- `learned_response` — `"yes"` oder `"no"`
+- `timestamp` — Zeitpunkt der Archivierung
